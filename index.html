@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151712">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="灰燼公會">
+  <title>灰燼公會｜回合制遠征 RPG</title>
+  <meta name="description" content="經營邊境公會、承接自由委託，在回合制遠征中建立自己的傳奇。">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="灰燼公會首頁">
+      <span class="brand-mark">AG</span>
+      <span><b>灰燼公會</b><small>ASHEN GUILD</small></span>
+    </a>
+    <div class="resources" aria-label="公會資源">
+      <span>第 <b id="day">1</b> 日</span>
+      <span>金幣 <b id="gold">120</b></span>
+      <span>聲望 <b id="renown">0</b></span>
+      <button id="recordsBtn" class="topbar-btn">紀錄</button>
+      <button id="codexBtn" class="topbar-btn">圖鑑</button>
+      <button id="bagBtn" class="topbar-btn">背包</button>
+      <button id="partyBtn" class="topbar-btn">隊伍</button>
+      <button id="systemBtn" class="topbar-btn">系統</button>
+      <button id="installBtn" class="topbar-btn install-btn" hidden>安裝</button>
+      <span id="connectionState" class="connection-state" aria-live="polite"></span>
+      <button id="soundBtn" class="icon-btn" title="切換音效" aria-label="切換音效">♪</button>
+    </div>
+  </header>
+
+  <main id="app">
+    <section id="guildView" class="view active">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">邊境曆 317 年 · 北境最後的燈火</p>
+          <h1>你的公會，<br><em>沒有命定的道路。</em></h1>
+          <p class="lede">聽聞傳言、衡量風險、挑選報酬。這裡沒有等待被拯救的世界，只有每一次由你決定的遠征。</p>
+        </div>
+        <aside class="guild-card">
+          <span class="seal">Ⅰ</span>
+          <div><small>公會階級</small><h2 id="guildRank">灰燼級</h2></div>
+          <div class="rank-progress"><i id="rankBar"></i></div>
+          <p id="rankHint">再獲得 100 聲望即可晉升</p>
+        </aside>
+      </div>
+
+      <div class="section-head">
+        <div><span class="eyebrow">TODAY'S WORK</span><h2>委託板</h2></div>
+        <button id="refreshBtn" class="text-btn">花費 10 金幣刷新</button>
+      </div>
+      <aside id="worldModifier" class="world-modifier"></aside>
+      <section id="worldDashboard" class="world-dashboard" aria-label="邊境局勢與公會方針"></section>
+      <div id="contractList" class="contract-grid"></div>
+
+      <div class="guild-lower">
+        <section class="panel roster-panel">
+          <div class="section-head compact"><div><span class="eyebrow">ROSTER</span><h2>冒險者名冊</h2></div><span>選擇 3 人出戰</span></div>
+          <div id="roster" class="roster"></div>
+        </section>
+        <section class="panel shop-panel">
+          <div class="section-head compact"><div><span class="eyebrow">GUILD WORKSHOP</span><h2>公會工坊</h2></div><span>鍛造與建設</span></div>
+          <div id="shop"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="expeditionView" class="view">
+      <div class="expedition-head">
+        <button id="retreatBtn" class="text-btn danger">放棄遠征</button>
+        <div><span class="eyebrow">EXPEDITION</span><h2 id="expeditionTitle">遠征</h2></div>
+        <div class="route" id="route"></div>
+      </div>
+      <div id="eventStage" class="event-stage"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button id="modalClose" class="modal-close" aria-label="關閉">×</button>
+      <span class="eyebrow">FIELD MANUAL</span>
+      <h2 id="modalTitle">歡迎接任會長</h2>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+  <script src="pwa.js"></script>
+</body>
+</html>
