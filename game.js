@@ -3,7 +3,7 @@
 
   const LEGACY_SAVE_KEY = 'ashen-guild-save-v1';
   const SAVE_KEY = 'ashen-guild-save-v2';
-  const SAVE_VERSION = 4;
+  const SAVE_VERSION = 5;
   localStorage.removeItem(LEGACY_SAVE_KEY);
   const ranks = [
     { name: '灰燼級', min: 0, next: 100, mark: 'Ⅰ' },
@@ -214,20 +214,20 @@
   const facilityDefs = {
     scouts:{name:'斥候塔',desc:['顯示精確區域威脅','路線提供三個選擇','危機契約額外降低 8 點威脅']},
     forgehouse:{name:'大鍛造間',desc:['解鎖稀有裝備製作','分解素材 +25%','解鎖史詩裝備製作']},
-    training:{name:'訓練庭',desc:['升級技能素材 -10%','角色升級額外獲得能力點','升級技能素材再 -10%']},
+    training:{name:'訓練庭',desc:['升級技能素材 -10%','角色升級額外獲得能力結晶','升級技能素材再 -10%']},
     archive:{name:'英雄檔案館',desc:['頭目首勝獎勵提高','編年史容量增加','危機聲望 +20%']}
   };
-  const materialDefs={scrap:{name:'鐵屑',symbol:'▰',desc:'鍛造武器與強化裝備'},cloth:{name:'韌布',symbol:'▧',desc:'製作護甲與防具'},essence:{name:'灰燼精華',symbol:'✦',desc:'製作飾品與稀有裝備'},skillDust:{name:'戰技殘頁',symbol:'頁',desc:'升級角色技能'},bossCore:{name:'首領核心',symbol:'◆',desc:'高階技能與史詩鍛造'}};
+  const materialDefs={scrap:{name:'鐵屑',symbol:'▰',group:'gear',desc:'鍛造武器與強化裝備'},cloth:{name:'韌布',symbol:'▧',group:'gear',desc:'製作護甲與防具'},essence:{name:'灰燼精華',symbol:'✦',group:'gear',desc:'製作飾品與稀有裝備'},bossCore:{name:'鍛造核心',symbol:'◆',group:'gear',desc:'史詩裝備製作與強化'},skillDust:{name:'戰技殘頁',symbol:'頁',group:'skill',desc:'技能第一階升級'},skillCore:{name:'奧義印記',symbol:'印',group:'skill',desc:'技能精通階段專用'},growthCrystal:{name:'能力結晶',symbol:'晶',group:'ability',desc:'分配角色體魄、力量與專注'}};
   const joinThresholds={riven:80,tor:180,alda:320};
   const dailyQuestDefs=[
     {id:'battles',name:'清理道路',desc:'贏得 2 場戰鬥',type:'battle',target:2,reward:{gold:24,skillDust:2}},
     {id:'contract',name:'完成值勤',desc:'完成 1 份契約',type:'contract',target:1,reward:{gold:35,scrap:3}},
-    {id:'ultimate',name:'氣勢如虹',desc:'施放 1 次絕招',type:'ultimate',target:1,reward:{essence:2,skillDust:1}},
+    {id:'ultimate',name:'氣勢如虹',desc:'施放 1 次絕招',type:'ultimate',target:1,reward:{skillCore:1,skillDust:1}},
     {id:'craft',name:'工坊委託',desc:'製作或強化 1 次裝備',type:'craft',target:1,reward:{gold:25,cloth:3}},
-    {id:'dismantle',name:'物資回收',desc:'分解 1 件裝備',type:'dismantle',target:1,reward:{scrap:4,skillDust:1}}
+    {id:'dismantle',name:'物資回收',desc:'分解 1 件裝備',type:'dismantle',target:1,reward:{scrap:4,growthCrystal:1}}
   ];
 
-  const freshState = () => ({ day: 1, gold: 120, renown: 0, supplies: 2, difficulty:'frontier', upgrades: { forge: 0, infirmary: 0 }, facilities:{scouts:0,forgehouse:0,training:0,archive:0},materials:{scrap:8,cloth:5,essence:3,skillDust:4,bossCore:0},gearLevels:{},daily:null,regions:Object.fromEntries(contractSeeds.map((c,i)=>[c.zone,{threat:24+i*7,cleared:0,crises:0}])), directive:null, trophies:{}, chronicle:[], chains:{}, contracts: [], heroes: heroTemplates.map(h => ({ ...h, level: 1, xp: 0, attributePoints:0,attributes:{vitality:0,might:0,focus:0}, skillRanks:{}, activeSkills:h.skills.slice(0,4).map(s=>s.id), injury:null, owned: !joinThresholds[h.id], equipment: { weapon: null, armor: null, charm: null } })), activeParty: ['bran','mira','sena'], inventory: ['ironblade','leather'], shopStock: [], discovered:{enemies:[],equipment:['ironblade','leather'],zones:[]}, seenIntro: false, stats: { wins: 0, expeditions: 0, completed: 0 }, achievements: {} });
+  const freshState = () => ({ day: 1, gold: 120, renown: 0, supplies: 2, difficulty:'frontier', upgrades: { forge: 0, infirmary: 0 }, facilities:{scouts:0,forgehouse:0,training:0,archive:0},materials:{scrap:8,cloth:5,essence:3,bossCore:0,skillDust:4,skillCore:0,growthCrystal:3},gearLevels:{},daily:null,regions:Object.fromEntries(contractSeeds.map((c,i)=>[c.zone,{threat:24+i*7,cleared:0,crises:0}])), directive:null, trophies:{}, chronicle:[], chains:{}, contracts: [], heroes: heroTemplates.map(h => ({ ...h, level: 1, xp: 0,attributes:{vitality:0,might:0,focus:0}, skillRanks:{}, activeSkills:h.skills.slice(0,4).map(s=>s.id), injury:null, owned: !joinThresholds[h.id], equipment: { weapon: null, armor: null, charm: null } })), activeParty: ['bran','mira','sena'], inventory: ['ironblade','leather'], shopStock: [], discovered:{enemies:[],equipment:['ironblade','leather'],zones:[]}, seenIntro: false, stats: { wins: 0, expeditions: 0, completed: 0 }, achievements: {} });
   let state;
   let expedition = null;
   let combat = null;
@@ -248,6 +248,7 @@
     s.day=Math.max(1,Math.floor(Number(s.day)||1));s.gold=Math.max(0,Math.floor(Number(s.gold)||0));s.renown=Math.max(0,Math.floor(Number(s.renown)||0));s.supplies=clamp(Math.floor(Number(s.supplies)||0),0,5);
     Object.keys(facilityDefs).forEach(id=>s.facilities[id]=clamp(Math.floor(Number(s.facilities[id])||0),0,3));
     Object.keys(materialDefs).forEach(id=>s.materials[id]=Math.max(0,Math.floor(Number(s.materials[id])||0)));
+    if((s.saveVersion||0)<5)s.materials.growthCrystal+=s.heroes.reduce((n,h)=>n+(h.attributePoints||0),0);s.heroes.forEach(h=>delete h.attributePoints);s.saveVersion=SAVE_VERSION;
     Object.values(s.regions).forEach(r=>{r.threat=clamp(Math.floor(Number(r.threat)||0),0,100);r.cleared=Math.max(0,Math.floor(Number(r.cleared)||0));r.crises=Math.max(0,Math.floor(Number(r.crises)||0));});
     s.activeParty=(Array.isArray(s.activeParty)?s.activeParty:[]).filter((id,i,a)=>a.indexOf(id)===i&&s.heroes.some(h=>h.id===id&&h.owned)).slice(0,3);if(!s.activeParty.length)s.activeParty=s.heroes.filter(h=>h.owned).slice(0,3).map(h=>h.id);
     s.inventory=Array.isArray(s.inventory)?s.inventory.filter(id=>equipment.some(i=>i.id===id)):[];s.contracts=Array.isArray(s.contracts)?s.contracts:[];s.shopStock=Array.isArray(s.shopStock)?s.shopStock:[];s.chronicle=Array.isArray(s.chronicle)?s.chronicle:[];
@@ -332,7 +333,7 @@
       const max = scaledHero(h).maxHp;
       const spec=specInfo(h);
       const active=state.activeParty.includes(h.id); const equipped=Object.values(h.equipment||{}).filter(Boolean).length;
-      return `<article class="hero-card ${active?'selected':''} ${h.injury?'injured':''}" style="--accent:${h.color}"><div class="portrait">${h.icon}</div><div class="hero-meta"><div><h3>${h.name}</h3><small>${h.job}${spec?` · ${spec.name}`:''}</small></div><b>Lv.${h.level}</b></div>${h.injury?`<div class="injury-tag">${h.injury.name} · ${h.injury.desc} · ${h.injury.days} 日</div>`:''}<div class="stats"><span>生命 ${max}</span><span>威力 ${scaledHero(h).power}</span><span>能力點 ${h.attributePoints||0}</span></div><div class="hero-actions"><button data-party="${h.id}">${active?'移出隊伍':'編入隊伍'}</button><button data-gear="${h.id}">裝備 ${equipped}/3</button><button data-training="${h.id}">技能</button><button data-attributes="${h.id}">能力</button></div>${!spec&&h.level>=3?`<button class="spec-ready" data-specialize="${h.id}">選擇專精</button>`:''}</article>`;
+      return `<article class="hero-card ${active?'selected':''} ${h.injury?'injured':''}" style="--accent:${h.color}"><div class="portrait">${h.icon}</div><div class="hero-meta"><div><h3>${h.name}</h3><small>${h.job}${spec?` · ${spec.name}`:''}</small></div><b>Lv.${h.level}</b></div>${h.injury?`<div class="injury-tag">${h.injury.name} · ${h.injury.desc} · ${h.injury.days} 日</div>`:''}<div class="stats"><span>生命 ${max}</span><span>威力 ${scaledHero(h).power}</span><span>能力結晶 ${state.materials.growthCrystal}</span></div><div class="hero-actions"><button data-party="${h.id}">${active?'移出隊伍':'編入隊伍'}</button><button data-gear="${h.id}">裝備 ${equipped}/3</button><button data-training="${h.id}">技能</button><button data-attributes="${h.id}">能力</button></div>${!spec&&h.level>=3?`<button class="spec-ready" data-specialize="${h.id}">選擇專精</button>`:''}</article>`;
     }).join('')+state.heroes.filter(h=>!h.owned).map(h=>`<article class="hero-card locked-hero" style="--accent:${h.color}"><div class="portrait">?</div><h3>${h.name} · ${h.job}</h3><small>公會聲望達到 ${joinThresholds[h.id]} 時加入</small><div class="rank-progress"><i style="width:${Math.min(100,state.renown/joinThresholds[h.id]*100)}%"></i></div></article>`).join('');
     document.querySelectorAll('[data-specialize]').forEach(b=>b.addEventListener('click',()=>openSpecialization(b.dataset.specialize)));
     document.querySelectorAll('[data-party]').forEach(b=>b.addEventListener('click',()=>toggleParty(b.dataset.party)));
@@ -367,7 +368,8 @@
 
   function drawEquipment(count){const cost=count===10?400:45;if(state.gold<cost)return;state.gold-=cost;const results=[];for(let n=0;n<count;n++){const roll=Math.random();let rarity=(count===10&&n===count-1&&results.every(x=>x.rarity==='common'))?'rare':roll<Math.min(.08,state.renown/4000)?'epic':roll<.3?'rare':'common';if(rarity==='epic'&&state.renown<120)rarity='rare';let pool=equipment.filter(i=>i.rarity===rarity);const item=pick(pool.length?pool:equipment.filter(i=>i.rarity==='common'));state.inventory.push(item.id);discover('equipment',item.id);results.push(item);}save();renderGuild();tone(780,.16);$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='軍械箱開啟結果';$('modalBody').innerHTML=`<div class="draw-results">${results.map(i=>`<article class="inventory-item rarity-${i.rarity}"><b>${i.name}</b><span>${rarityName(i)} · ${slotName(i.slot)}</span></article>`).join('')}</div>`;}
   function inventoryCounts(){return state.inventory.reduce((m,id)=>(m[id]=(m[id]||0)+1,m),{});}
-  function openBag(){const counts=inventoryCounts();$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='公會背包';$('modalBody').innerHTML=`<span class="eyebrow">MATERIALS</span><div class="material-grid">${Object.entries(materialDefs).map(([id,m])=>`<article><i>${m.symbol}</i><b>${m.name}</b><strong>${state.materials[id]}</strong><small>${m.desc}</small></article>`).join('')}</div><span class="eyebrow">EQUIPMENT</span><div class="inventory-list">${Object.entries(counts).map(([id,n])=>{const i=equipment.find(x=>x.id===id);return `<article class="inventory-item rarity-${i.rarity}"><b>${i.name} ${state.gearLevels[id]?`+${state.gearLevels[id]}`:''}</b><span>${rarityName(i)} · ${slotName(i.slot)} · 持有 ${n}</span></article>`;}).join('')||'<p class="empty-note">背包內沒有未裝備的裝備</p>'}</div>`;}
+  function materialGroupHtml(group,title){return `<span class="eyebrow material-heading">${title}</span><div class="material-grid">${Object.entries(materialDefs).filter(([,m])=>m.group===group).map(([id,m])=>`<article><i>${m.symbol}</i><b>${m.name}</b><strong>${state.materials[id]}</strong><small>${m.desc}</small></article>`).join('')}</div>`;}
+  function openBag(){const counts=inventoryCounts();$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='公會背包';$('modalBody').innerHTML=`${materialGroupHtml('gear','EQUIPMENT MATERIALS · 裝備素材')}${materialGroupHtml('skill','SKILL MATERIALS · 技能素材')}${materialGroupHtml('ability','ABILITY MATERIALS · 能力素材')}<span class="eyebrow material-heading">EQUIPMENT</span><div class="inventory-list">${Object.entries(counts).map(([id,n])=>{const i=equipment.find(x=>x.id===id);return `<article class="inventory-item rarity-${i.rarity}"><b>${i.name} ${state.gearLevels[id]?`+${state.gearLevels[id]}`:''}</b><span>${rarityName(i)} · ${slotName(i.slot)} · 持有 ${n}</span></article>`;}).join('')||'<p class="empty-note">背包內沒有未裝備的裝備</p>'}</div>`;}
   function craftCost(item){const rare=item.rarity==='rare',epic=item.rarity==='epic';return item.slot==='weapon'?{scrap:epic?18:rare?10:6,essence:epic?8:rare?3:0,bossCore:epic?1:0}:item.slot==='armor'?{cloth:epic?18:rare?10:6,essence:epic?7:rare?3:0,bossCore:epic?1:0}:{scrap:epic?7:rare?4:2,cloth:epic?7:rare?4:2,essence:epic?12:rare?6:3,bossCore:epic?1:0};}
   function canPayMaterials(cost){return Object.entries(cost).every(([id,n])=>(state.materials[id]||0)>=n);}
   function payMaterials(cost){Object.entries(cost).forEach(([id,n])=>state.materials[id]-=n);}
@@ -386,8 +388,8 @@
   function openParty(){const owned=state.heroes.filter(h=>h.owned);$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='遠征隊伍與出戰順序';$('modalBody').innerHTML=`<p>第 1 位會最先行動。每名角色完成行動後依序輪替。</p><div class="party-order">${state.activeParty.map((id,index)=>{const h=state.heroes.find(x=>x.id===id);return `<article><b>${index+1}</b><span style="--accent:${h.color}">${h.icon}</span><div><strong>${h.name}</strong><small>${h.job}</small></div><button data-party-up="${id}" ${index===0?'disabled':''}>↑</button><button data-party-down="${id}" ${index===state.activeParty.length-1?'disabled':''}>↓</button><button data-party-remove="${id}">移出</button></article>`;}).join('')}</div><span class="eyebrow">AVAILABLE</span><div class="party-bench">${owned.filter(h=>!state.activeParty.includes(h.id)).map(h=>`<button data-party-add="${h.id}" ${state.activeParty.length>=3?'disabled':''}>${h.name} · ${h.job}</button>`).join('')||'<small>所有成員都已編入隊伍</small>'}</div>`;document.querySelectorAll('[data-party-up]').forEach(b=>b.addEventListener('click',()=>moveParty(b.dataset.partyUp,-1)));document.querySelectorAll('[data-party-down]').forEach(b=>b.addEventListener('click',()=>moveParty(b.dataset.partyDown,1)));document.querySelectorAll('[data-party-remove]').forEach(b=>b.addEventListener('click',()=>{toggleParty(b.dataset.partyRemove);openParty();}));document.querySelectorAll('[data-party-add]').forEach(b=>b.addEventListener('click',()=>{toggleParty(b.dataset.partyAdd);openParty();}));}
   function moveParty(id,dir){const i=state.activeParty.indexOf(id),j=i+dir;if(i<0||j<0||j>=state.activeParty.length)return;[state.activeParty[i],state.activeParty[j]]=[state.activeParty[j],state.activeParty[i]];save();openParty();renderGuild();tone(520);}
 
-  function openAttributes(heroId){const h=state.heroes.find(x=>x.id===heroId);if(!h)return;const attrs=[['vitality','體魄','每點生命 +6'],['might','力量','每點威力 +2'],['focus','專注','每 3 點技能點上限 +1']];$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 能力培養`;$('modalBody').innerHTML=`<p>可用能力點：<b>${h.attributePoints||0}</b>。能力配置為永久成長。</p><div class="attribute-list">${attrs.map(([id,name,desc])=>`<article><div><b>${name}</b><span>${desc}</span></div><strong>${h.attributes[id]||0}</strong><button data-add-attribute="${id}" ${(h.attributePoints||0)<=0?'disabled':''}>＋</button></article>`).join('')}</div>`;document.querySelectorAll('[data-add-attribute]').forEach(b=>b.addEventListener('click',()=>addAttribute(heroId,b.dataset.addAttribute)));}
-  function addAttribute(heroId,id){const h=state.heroes.find(x=>x.id===heroId);if(!h||!['vitality','might','focus'].includes(id)||(h.attributePoints||0)<=0)return;h.attributePoints--;h.attributes[id]=(h.attributes[id]||0)+1;save();openAttributes(heroId);renderGuild();tone(660);}
+  function openAttributes(heroId){const h=state.heroes.find(x=>x.id===heroId);if(!h)return;const attrs=[['vitality','體魄','每點生命 +6'],['might','力量','每點威力 +2'],['focus','專注','每 3 點技能點上限 +1']];$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 能力培養`;$('modalBody').innerHTML=`<p>能力結晶：<b>${state.materials.growthCrystal}</b>。每次提升消耗 1 枚，與裝備及技能素材完全分開。</p><div class="attribute-list">${attrs.map(([id,name,desc])=>`<article><div><b>${name}</b><span>${desc}</span></div><strong>${h.attributes[id]||0}</strong><button data-add-attribute="${id}" ${state.materials.growthCrystal<=0?'disabled':''}>＋</button></article>`).join('')}</div>`;document.querySelectorAll('[data-add-attribute]').forEach(b=>b.addEventListener('click',()=>addAttribute(heroId,b.dataset.addAttribute)));}
+  function addAttribute(heroId,id){const h=state.heroes.find(x=>x.id===heroId);if(!h||!['vitality','might','focus'].includes(id)||state.materials.growthCrystal<=0)return;state.materials.growthCrystal--;h.attributes[id]=(h.attributes[id]||0)+1;save();openAttributes(heroId);renderGuild();tone(660);}
 
   function scaledHero(h) {
     const spec=specInfo(h);
@@ -427,17 +429,42 @@
   function unequipItem(heroId,slot){const hero=state.heroes.find(h=>h.id===heroId);const id=hero?.equipment?.[slot];if(!hero||!id)return;state.inventory.push(id);hero.equipment[slot]=null;save();openEquipment(heroId);renderGuild();}
 
   function trainedSkill(hero,base){const rank=hero.skillRanks?.[base.id]||0;const skill={...base,rank};if(rank>=1){['damage','heal','healAll','shield','stagger'].forEach(k=>{if(skill[k])skill[k]=typeof skill[k]==='number'?Math.round(skill[k]*1.15*100)/100:skill[k];});}if(rank>=2)skill.cost=Math.max(0,skill.cost-1);return skill;}
+  function skillDetailText(hero,skill){
+    const targetNames={enemy:'單體敵人',enemies:'全體敵人',self:'自身',allies:'全體友軍',lowest:'生命最低友軍'};
+    const power=hero?.hp!==undefined?hero.power:scaledHero(hero).power;
+    const parts=[`目標：${targetNames[skill.target]||'特殊'}`];
+    if(skill.damage){const estimate=Math.round(power*skill.damage);parts.push(`威力 ×${skill.damage}（約 ${estimate} 傷害／護甲前）`);}
+    if(skill.heal)parts.push(`治療 ${skill.heal}`);
+    if(skill.healAll)parts.push(`全隊治療 ${skill.healAll}`);
+    if(skill.shield)parts.push(`護盾 ${skill.shield}`);
+    if(skill.stagger)parts.push(`破勢 ${skill.stagger}`);else if(skill.damage)parts.push('破勢 4');
+    if(skill.vulnerable)parts.push(`易傷 ${skill.vulnerable} 回合（承傷 +35%）`);
+    if(skill.burn)parts.push(`燃燒 ${skill.burn} 回合（每回合 7）`);
+    if(skill.taunt)parts.push('嘲諷本輪攻擊');
+    if(skill.counter)parts.push(`下次受擊反傷 ${skill.counter}`);
+    if(skill.dodge)parts.push('閃避下次攻擊');
+    if(skill.restoreSelf)parts.push(`自身技能點 +${skill.restoreSelf}`);
+    if(skill.restoreAll)parts.push(`全隊技能點 +${skill.restoreAll}`);
+    if(skill.regenAll)parts.push(`全隊每回合恢復 ${skill.regenAll}，持續 3 回合`);
+    if(skill.cleanseAll)parts.push('清除全隊中毒');
+    if(skill.reviveAll)parts.push(`復甦倒下隊友至 ${Math.round(skill.reviveAll*100)}% 生命`);
+    if(skill.pierce)parts.push('無視護甲');
+    if(skill.weaken)parts.push(`永久降低敵人威力 ${skill.weaken}`);
+    if(skill.statusScale)parts.push('目標每有易傷、燃燒或失衡其中 1 種，傷害 +20%');
+    if(skill.ultimateExecute)parts.push('目標生命 ≤50% 時，傷害 +35%');
+    return parts.join(' · ');
+  }
   function openTraining(heroId){
     const hero=state.heroes.find(h=>h.id===heroId&&h.owned);if(!hero)return;
     $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${hero.name}的技能配置`;
     const active=hero.activeSkills||hero.skills.slice(0,4).map(s=>s.id);
     const slots=active.map((id,index)=>`<label>技能欄 ${index+1}<select data-skill-slot="${index}">${hero.skills.map(s=>`<option value="${s.id}" ${s.id===id?'selected':''}>${s.name}</option>`).join('')}</select></label>`).join('');
-    $('modalBody').innerHTML=`<p>從六項技能中配置四項出戰技能。升級消耗戰技殘頁，第二階另需首領核心。</p><div class="material-inline">戰技殘頁 <b>${state.materials.skillDust}</b>　首領核心 <b>${state.materials.bossCore}</b></div><div class="loadout-grid">${slots}</div><article class="ultimate-preview"><span>絕招</span><b>${hero.ultimate.name}</b><small>${hero.ultimate.desc}</small></article><div class="training-list">${hero.skills.map(s=>{const rank=hero.skillRanks?.[s.id]||0,cost=skillUpgradeCost(rank);return `<div class="training-skill"><div><b>${s.name}</b><span>${s.desc}</span></div><em>${'◆'.repeat(rank)}${'◇'.repeat(2-rank)}</em><button data-upgrade-skill="${s.id}" ${rank>=2||!canPayMaterials(cost)?'disabled':''}>${rank>=2?'精通':costText(cost)}</button></div>`;}).join('')}</div>`;
+    $('modalBody').innerHTML=`<p>從六項技能中配置四項出戰技能。技能只消耗戰技殘頁與奧義印記。</p><div class="material-inline">戰技殘頁 <b>${state.materials.skillDust}</b>　奧義印記 <b>${state.materials.skillCore}</b></div><div class="loadout-grid">${slots}</div><article class="ultimate-preview"><span>絕招</span><b>${hero.ultimate.name}</b><small>${skillDetailText(hero,{...hero.ultimate,cost:0})}</small></article><div class="training-list">${hero.skills.map(s=>{const rank=hero.skillRanks?.[s.id]||0,cost=skillUpgradeCost(rank),trained=trainedSkill(hero,s);return `<div class="training-skill"><div><b>${s.name}</b><span>${skillDetailText(hero,trained)}</span></div><em>${'◆'.repeat(rank)}${'◇'.repeat(2-rank)}</em><button data-upgrade-skill="${s.id}" ${rank>=2||!canPayMaterials(cost)?'disabled':''}>${rank>=2?'精通':costText(cost)}</button></div>`;}).join('')}</div>`;
     document.querySelectorAll('[data-upgrade-skill]').forEach(b=>b.addEventListener('click',()=>upgradeSkill(heroId,b.dataset.upgradeSkill)));
     document.querySelectorAll('[data-skill-slot]').forEach(s=>s.addEventListener('change',()=>setSkillSlot(heroId,+s.dataset.skillSlot,s.value)));
   }
   function setSkillSlot(heroId,index,skillId){const hero=state.heroes.find(h=>h.id===heroId);if(!hero||!hero.skills.some(s=>s.id===skillId))return;if(hero.activeSkills.some((id,i)=>id===skillId&&i!==index)){toast('同一技能不能重複裝備');return openTraining(heroId);}hero.activeSkills[index]=skillId;save();openTraining(heroId);tone(540);}
-  function skillUpgradeCost(rank){const factor=1-(state.facilities.training||0)*.1;return {skillDust:Math.max(1,Math.ceil((rank?10:4)*factor)),bossCore:rank?1:0};}
+  function skillUpgradeCost(rank){const factor=1-(state.facilities.training||0)*.1;return {skillDust:Math.max(1,Math.ceil((rank?10:4)*factor)),skillCore:rank?1:0};}
   function upgradeSkill(heroId,skillId){const hero=state.heroes.find(h=>h.id===heroId);const rank=hero?.skillRanks?.[skillId]||0,cost=skillUpgradeCost(rank);if(!hero||rank>=2||!canPayMaterials(cost))return;payMaterials(cost);hero.skillRanks[skillId]=rank+1;save();openTraining(heroId);renderGuild();tone(700);}
 
   function startExpedition(id) {
@@ -520,7 +547,7 @@
       const seasonalElite=currentSeason().id==='beast'?.12:currentSeason().id==='longnight'&&expedition.node===expedition.total-1?.18:0;
       const threatElite=(state.regions[c.zone]?.threat||0)/500;
       const eliteChance=encounter==='elite'?1:(c.risk===3?.55:c.risk===2?.28:0)+(difficulties[state.difficulty]?.elite||0)+seasonalElite+threatElite; const affix=!t.boss&&Math.random()<eliteChance?pick(eliteAffixes):null;
-      return { ...t, power: t.power + (expedition.modifier === 'cruel' ? 2 : 0), id: `${type}-${i}`, type, maxHp, hp: maxHp, stagger: 0, shield: 0, burn: 0, vulnerable: 0, stunned: 0, intent: null, affix, affixTriggered:false, phase2:false };
+      return { ...t, power: t.power + (expedition.modifier === 'cruel' ? 2 : 0), id: `${type}-${i}`, type, maxHp, hp: maxHp, stagger: 0, shield: 0, burn: 0, vulnerable: 0, stunned: 0, weaken: 0, intent: null, affix, affixTriggered:false, phase2:false };
     });
     types.forEach(type=>discover('enemies',type));save();
     expedition.party.forEach(h => {
@@ -570,15 +597,34 @@
     document.querySelectorAll('[data-enemy]').forEach(b => b.addEventListener('click', () => { if (pendingSkill) executeSkill(pendingSkill, combat.enemies.find(e => e.id === b.dataset.enemy)); }));
   }
 
+  function statusChip(kind,name,value,detail){return `<span class="status-chip ${kind}" title="${detail}"><b>${name}</b>${value?` ${value}`:''}</span>`;}
+  function statusHtml(unit,side){
+    const buffs=[],debuffs=[];
+    if(unit.shield>0)buffs.push(statusChip('buff','護盾',unit.shield,`優先承受 ${unit.shield} 點傷害`));
+    if(unit.taunt)buffs.push(statusChip('buff','嘲諷','','本輪敵人優先攻擊此角色'));
+    if(unit.dodge)buffs.push(statusChip('buff','閃避','1 次','完全避開下一次攻擊'));
+    if(unit.counter>0)buffs.push(statusChip('buff','反擊',unit.counter,`下次受擊反傷 ${unit.counter}`));
+    if(unit.regenTurns>0)buffs.push(statusChip('buff','再生',`${unit.regenAmount}×${unit.regenTurns}`,`每次行動恢復 ${unit.regenAmount} 生命，剩餘 ${unit.regenTurns} 回合`));
+    if(side==='enemy'&&unit.phase2)buffs.push(statusChip('buff','狂化','','首領進入第二階段，行動模式改變'));
+    if(side==='enemy'&&unit.affix)buffs.push(statusChip('buff',unit.affix.name,'',unit.affix.desc));
+    if(unit.vulnerable>0)debuffs.push(statusChip('debuff','易傷',unit.vulnerable,`承受傷害 +35%，剩餘 ${unit.vulnerable} 回合`));
+    if(unit.burn>0)debuffs.push(statusChip('debuff','燃燒',unit.burn,`每回合受到 7 傷害，剩餘 ${unit.burn} 回合`));
+    if(unit.poison>0)debuffs.push(statusChip('debuff','中毒',unit.poison,`敵方回合結束受到 4 傷害，剩餘 ${unit.poison} 回合`));
+    if(unit.stunned>0)debuffs.push(statusChip('debuff','失衡',unit.stunned,`無法行動，剩餘 ${unit.stunned} 回合`));
+    if(unit.weaken>0)debuffs.push(statusChip('debuff','弱化',`-${unit.weaken}`,`威力永久降低 ${unit.weaken}`));
+    if(unit.injury)debuffs.push(statusChip('debuff','傷勢','',unit.injury.desc||'能力受到傷勢影響'));
+    return `<div class="status-bar" aria-label="目前狀態">${buffs.join('')}${debuffs.join('')||(!buffs.length?'<span class="status-empty">無狀態</span>':'')}</div>`;
+  }
+
   function enemyHtml(e) {
     const hp = clamp(e.hp/e.maxHp*100,0,100), st = clamp(e.stagger/e.staggerMax*100,0,100);
     const intent=difficulties[state.difficulty]?.conceal?e.intent.label.replace(/\d+/g,'?'):e.intent.label;
-    return `<article class="unit ${e.hp<=0?'dead':''} ${pendingSkill?.target==='enemy'&&e.hp>0?'targetable':''}" data-enemy="${e.id}" style="--accent:${e.color}"><span class="intent">${e.hp>0?intent:'倒下'}</span><div class="unit-icon">${e.icon}</div><h3>${e.name}${e.affix?` <em class="elite-tag">${e.affix.name}</em>`:''}${e.phase2?' <em class="phase-tag">Ⅱ</em>':''}</h3>${e.affix?`<small class="enemy-trait">${e.affix.desc}</small>`:''}<div class="numbers"><span>HP ${Math.max(0,e.hp)}/${e.maxHp}</span><span>${e.shield?`盾 ${e.shield}`:''}</span></div><div class="hp-track"><i style="width:${hp}%;background:var(--red)"></i></div><div class="numbers"><span>破勢</span><span>${e.stagger}/${e.staggerMax}</span></div><div class="stagger-track"><i style="width:${st}%"></i></div></article>`;
+    return `<article class="unit ${e.hp<=0?'dead':''} ${pendingSkill?.target==='enemy'&&e.hp>0?'targetable':''}" data-enemy="${e.id}" style="--accent:${e.color}"><span class="intent">${e.hp>0?intent:'倒下'}</span><div class="unit-icon">${e.icon}</div><h3>${e.name}${e.affix?` <em class="elite-tag">${e.affix.name}</em>`:''}${e.phase2?' <em class="phase-tag">Ⅱ</em>':''}</h3>${e.affix?`<small class="enemy-trait">${e.affix.desc}</small>`:''}<div class="numbers"><span>HP ${Math.max(0,e.hp)}/${e.maxHp}</span><span>${e.shield?`盾 ${e.shield}`:''}</span></div><div class="hp-track"><i style="width:${hp}%;background:var(--red)"></i></div>${statusHtml(e,'enemy')}<div class="numbers"><span>破勢</span><span>${e.stagger}/${e.staggerMax}</span></div><div class="stagger-track"><i style="width:${st}%"></i></div></article>`;
   }
-  function partyHtml(h,i) { const hp=clamp(h.hp/h.maxHp*100,0,100); return `<article class="party-unit ${i===combat.heroIndex?'active':''} ${h.hp<=0?'dead':''}"><h4 style="color:${h.color}">${h.name} · ${h.job}</h4><div class="numbers"><span>HP ${Math.max(0,h.hp)}/${h.maxHp}</span><span>技能 ${h.sp}/${h.maxSp} ${h.shield?`· 盾 ${h.shield}`:''}${h.poison?` · 毒 ${h.poison}`:''}</span></div><div class="hp-track"><i style="width:${hp}%;background:${h.color}"></i></div><div class="ult-track" title="絕招氣勢 ${h.ultCharge}/100"><i style="width:${h.ultCharge}%"></i></div></article>`; }
+  function partyHtml(h,i) { const hp=clamp(h.hp/h.maxHp*100,0,100); return `<article class="party-unit ${i===combat.heroIndex?'active':''} ${h.hp<=0?'dead':''}"><h4 style="color:${h.color}">${h.name} · ${h.job}</h4><div class="numbers"><span>HP ${Math.max(0,h.hp)}/${h.maxHp}</span><span>技能 ${h.sp}/${h.maxSp}</span></div><div class="hp-track"><i style="width:${hp}%;background:${h.color}"></i></div>${statusHtml(h,'party')}<div class="ult-track" title="絕招氣勢 ${h.ultCharge}/100"><i style="width:${h.ultCharge}%"></i></div></article>`; }
   function skillCost(hero,skill){return Math.max(0,skill.cost-(hasTrait(hero,'focus')&&!hero.focusUsed&&skill.cost>0?1:0));}
-  function skillHtml(s) { const h=expedition.party[combat.heroIndex],cost=skillCost(h,s); return `<button class="skill" data-skill="${s.id}" ${combat.locked||h.sp<cost?'disabled':''}><b>${s.name}</b><span>${s.desc}</span><small>${cost ? `${cost} 技能點` : '基礎行動'}${cost<s.cost?' · 專注':''}</small></button>`; }
-  function ultimateHtml(hero){return `<button class="skill ultimate-skill" data-ultimate ${combat.locked||hero.ultCharge<100?'disabled':''}><b>✦ ${hero.ultimate.name}</b><span>${hero.ultimate.desc}</span><small>${hero.ultCharge>=100?'氣勢已滿 · 可發動':`氣勢 ${hero.ultCharge}/100`}</small></button>`;}
+  function skillHtml(s) { const h=expedition.party[combat.heroIndex],cost=skillCost(h,s); return `<button class="skill" data-skill="${s.id}" ${combat.locked||h.sp<cost?'disabled':''}><b>${s.name}</b><span class="skill-details">${skillDetailText(h,s)}</span><small>${cost ? `${cost} 技能點` : '基礎行動'}${cost<s.cost?' · 專注減免':''}${s.rank?` · 強化 ${s.rank}`:''}</small></button>`; }
+  function ultimateHtml(hero){return `<button class="skill ultimate-skill" data-ultimate ${combat.locked||hero.ultCharge<100?'disabled':''}><b>✦ ${hero.ultimate.name}</b><span class="skill-details">${skillDetailText(hero,hero.ultimate)}</span><small>${hero.ultCharge>=100?'氣勢已滿 · 可發動':`氣勢 ${hero.ultCharge}/100`}</small></button>`;}
 
   function chooseSkill(id) {
     if (combat.locked) return; const hero = expedition.party[combat.heroIndex]; const base = hero.skills.find(s => s.id === id);const skill=base?trainedSkill(hero,base):null;if (!skill || hero.sp < skillCost(hero,skill)) return;
@@ -630,7 +676,7 @@
     if(hero.specialization==='storm'&&skill.id==='nova') stagger+=8;
     if(hero.specialization==='inquisitor') stagger+=5;
     if(hasTrait(hero,'resolve')&&hero.hp<=hero.maxHp*.5)stagger=Math.round(stagger*1.3);
-    enemy.stagger += stagger; if (skill.vulnerable) enemy.vulnerable=skill.vulnerable; if(skill.burn) enemy.burn=skill.burn;if(skill.weaken)enemy.power=Math.max(1,enemy.power-skill.weaken);
+    enemy.stagger += stagger; if (skill.vulnerable) enemy.vulnerable=skill.vulnerable; if(skill.burn) enemy.burn=skill.burn;if(skill.weaken){enemy.power=Math.max(1,enemy.power-skill.weaken);enemy.weaken=(enemy.weaken||0)+skill.weaken;}
     if(skill.burn&&hasTrait(hero,'wildfire')){const other=combat.enemies.find(e=>e.hp>0&&e!==enemy);if(other)other.burn=Math.max(other.burn,1);}
     combat.log.push(`${hero.name}以${skill.name}對${enemy.name}造成 ${dmg} 傷害${absorbed ? `（護盾吸收 ${absorbed}）` : ''}。`);
     if(enemy.stagger>=enemy.staggerMax&&enemy.hp>0){enemy.stagger=0;enemy.stunned=1;if(hasTrait(hero,'momentum'))hero.sp=Math.min(hero.maxSp,hero.sp+1);if(hasTrait(hero,'aftershock'))combat.enemies.filter(e=>e.hp>0&&e!==enemy).forEach(e=>{e.hp-=5;resolveEnemyDeath(e);});combat.log.push(`${enemy.name}被破勢，本輪無法行動！`);}
@@ -713,13 +759,13 @@
   function finishExpedition() {
     const c=expedition.contract; const total=c.gold+expedition.earned; let earnedRenown=Math.round(c.renown*(expedition.modifier==='cruel'?1.25:1));if(c.crisis&&state.facilities.archive>=3)earnedRenown=Math.round(earnedRenown*1.2); state.gold+=total; state.renown+=earnedRenown; state.inventory.push(...expedition.lootItems);expedition.lootItems.forEach(id=>discover('equipment',id));const tradeBonus=currentSeason().id==='trade'?2:0,scrapGain=2+c.risk+tradeBonus,clothGain=1+c.risk+tradeBonus,dustGain=c.risk;state.materials.scrap+=scrapGain;state.materials.cloth+=clothGain;state.materials.skillDust+=dustGain;
     const region=state.regions[c.zone];region.cleared++;region.threat=clamp(region.threat-(c.crisis?38+(state.facilities.scouts>=3?8:0):18+c.risk*3),0,100);progressDirective('contract');progressDaily('contract');if(expedition.lootItems.length)progressDirective('gear',expedition.lootItems.length);
-    let trophy='';if(c.crisis||c.risk===3){state.materials.bossCore++;const first=!state.trophies[c.zone];state.trophies[c.zone]=(state.trophies[c.zone]||0)+1;region.crises+=(c.crisis?1:0);trophy=`獲得「${c.zone}戰證」與首領核心`;if(first){const bonus=30+(state.facilities.archive||0)*10;state.gold+=bonus;trophy+=`，首勝陳列獎勵 ${bonus} 金幣`;}addChronicle(`遠征隊平定「${c.title}」，帶回第 ${state.trophies[c.zone]} 枚${c.zone}戰證。`);}
+    let trophy='',coreGain=0,markGain=0;if(c.crisis||c.risk===3){state.materials.bossCore++;state.materials.skillCore++;coreGain=1;markGain=1;const first=!state.trophies[c.zone];state.trophies[c.zone]=(state.trophies[c.zone]||0)+1;region.crises+=(c.crisis?1:0);trophy=`獲得「${c.zone}戰證」、鍛造核心與奧義印記`;if(first){const bonus=30+(state.facilities.archive||0)*10;state.gold+=bonus;trophy+=`，首勝陳列獎勵 ${bonus} 金幣`;}addChronicle(`遠征隊平定「${c.title}」，帶回第 ${state.trophies[c.zone]} 枚${c.zone}戰證。`);}
     if(c.crisis)progressDirective('crisis');else addChronicle(`完成${c.zone}契約「${c.title}」。`);
     advanceDay();const newInjuries=applyInjuries(false); state.stats.completed++;
-    state.heroes.filter(h=>state.activeParty.includes(h.id)).forEach(h=>{h.xp+=18+c.risk*8;while(h.xp>=h.level*45){h.xp-=h.level*45;h.level++;h.attributePoints=(h.attributePoints||0)+1+(state.facilities.training>=2?1:0);}});syncRenownHeroes();
+    let crystalGain=0;state.heroes.filter(h=>state.activeParty.includes(h.id)).forEach(h=>{h.xp+=18+c.risk*8;while(h.xp>=h.level*45){h.xp-=h.level*45;h.level++;const gain=1+(state.facilities.training>=2?1:0);state.materials.growthCrystal+=gain;crystalGain+=gain;}});syncRenownHeroes();
     state.contracts=[]; state.shopStock=[]; checkAchievements(); save();
     const lootNames=expedition.lootItems.map(id=>equipment.find(i=>i.id===id)?.name).filter(Boolean);
-    $('eventStage').innerHTML=`<article class="event-card"><div class="event-symbol">✓</div><span class="eyebrow">CONTRACT COMPLETE</span><h2>${c.crisis?'危機解除':'遠征歸來'}</h2><p>${lootNames.length?`本次帶回裝備：${lootNames.join('、')}。`:'沒有發現可用裝備。'} 取得鐵屑 ${scrapGain}、韌布 ${clothGain}、戰技殘頁 ${dustGain}。${newInjuries.length?` ${newInjuries.join('、')}帶傷歸隊。`:' 隊員均平安歸隊。'}${trophy?` ${trophy}。`:''}</p><div class="event-options"><span><b>${total}</b> 金幣</span><span><b>${earnedRenown}</b> 聲望</span><span><b>${lootNames.length}</b> 件裝備</span><button class="action-btn" id="returnBtn">返回公會</button></div></article>`;
+    $('eventStage').innerHTML=`<article class="event-card"><div class="event-symbol">✓</div><span class="eyebrow">CONTRACT COMPLETE</span><h2>${c.crisis?'危機解除':'遠征歸來'}</h2><p>${lootNames.length?`本次帶回裝備：${lootNames.join('、')}。`:'沒有發現可用裝備。'} 裝備素材：鐵屑 ${scrapGain}、韌布 ${clothGain}${coreGain?`、鍛造核心 ${coreGain}`:''}；技能素材：戰技殘頁 ${dustGain}${markGain?`、奧義印記 ${markGain}`:''}${crystalGain?`；能力素材：能力結晶 ${crystalGain}`:''}。${newInjuries.length?` ${newInjuries.join('、')}帶傷歸隊。`:' 隊員均平安歸隊。'}${trophy?` ${trophy}。`:''}</p><div class="event-options"><span><b>${total}</b> 金幣</span><span><b>${earnedRenown}</b> 聲望</span><span><b>${lootNames.length}</b> 件裝備</span><button class="action-btn" id="returnBtn">返回公會</button></div></article>`;
     $('returnBtn').addEventListener('click', returnGuild); tone(740,.18);
   }
   function advanceDay(){state.day++;const season=currentSeason();Object.entries(state.regions).forEach(([zone,r])=>{let growth=rand(3,7);if(season.id==='beast'&&(zone==='狼煙丘陵'||zone==='北風林線'))growth+=4;r.threat=clamp(r.threat+growth,0,100);});state.heroes.forEach(h=>{if(h.injury){h.injury.days--;if(h.injury.days<=0)h.injury=null;}});state.contracts=[];state.shopStock=[];ensureDirective();ensureDaily();}
@@ -747,7 +793,7 @@
   function openSystem(){
     const saved=state.savedAt?new Date(state.savedAt).toLocaleString('zh-TW'):'尚未建立';
     $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='系統與測試工具';
-    $('modalBody').innerHTML=`<div class="system-status"><div><small>存檔版本</small><b>v${state.saveVersion||SAVE_VERSION}</b></div><div><small>最後儲存</small><b>${saved}</b></div><div><small>儲存位置</small><b>此瀏覽器</b></div></div><span class="eyebrow">SAVE MANAGEMENT</span><p>大型更新後建議先匯出備份。匯入會覆蓋目前進度；重置則會刪除本瀏覽器中的遊戲存檔。</p><div class="system-actions"><button class="action-btn" id="exportSaveBtn">匯出存檔</button><button class="action-btn secondary" id="importSaveBtn">匯入存檔</button><button class="action-btn danger-fill" id="resetSaveBtn">刪除並重開</button></div><input id="importSaveInput" type="file" accept="application/json,.json" hidden><span class="eyebrow guide-title">QUICK GUIDE</span><ul><li>每日任務每天輪替三項，達成後會自動領取素材或金幣。</li><li>角色隨聲望加入；角色升級獲得能力點，技能則消耗素材強化。</li><li>鐵匠鋪能製作、強化與分解裝備，背包可確認全部素材。</li><li>從隊伍介面安排三名成員與出戰順序。</li><li>區域威脅達到 75% 會產生危機契約。</li></ul>`;
+    $('modalBody').innerHTML=`<div class="system-status"><div><small>存檔版本</small><b>v${state.saveVersion||SAVE_VERSION}</b></div><div><small>最後儲存</small><b>${saved}</b></div><div><small>儲存位置</small><b>此瀏覽器</b></div></div><span class="eyebrow">SAVE MANAGEMENT</span><p>大型更新後建議先匯出備份。匯入會覆蓋目前進度；重置則會刪除本瀏覽器中的遊戲存檔。</p><div class="system-actions"><button class="action-btn" id="exportSaveBtn">匯出存檔</button><button class="action-btn secondary" id="importSaveBtn">匯入存檔</button><button class="action-btn danger-fill" id="resetSaveBtn">刪除並重開</button></div><input id="importSaveInput" type="file" accept="application/json,.json" hidden><span class="eyebrow guide-title">QUICK GUIDE</span><ul><li>每日任務每天輪替三項，達成後會自動領取素材或金幣。</li><li>角色隨聲望加入；升級取得能力結晶，技能則使用獨立的技能素材。</li><li>鐵匠鋪能製作、強化與分解裝備，背包會將三類素材分區顯示。</li><li>從隊伍介面安排三名成員與出戰順序。</li><li>區域威脅達到 75% 會產生危機契約。</li></ul>`;
     $('exportSaveBtn').addEventListener('click',exportSave);$('importSaveBtn').addEventListener('click',()=>$('importSaveInput').click());$('importSaveInput').addEventListener('change',importSave);$('resetSaveBtn').addEventListener('click',resetSave);
   }
 
@@ -761,7 +807,7 @@
 
   function resetSave(){if(!confirm('確定刪除目前進度？此動作無法復原，建議先匯出備份。'))return;if(!confirm('再次確認：要從第 1 日重新開始嗎？'))return;localStorage.removeItem(SAVE_KEY);location.reload();}
 
-  function openIntro(){ $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalBody').innerHTML='<p>《灰燼公會》沒有固定主線。你決定今天值得冒什麼風險，也決定邊境會變成什麼模樣。</p><ul><li>敵人頭上的標記會預告下一個行動；累積「破勢」可打斷敵人。</li><li>每日任務、季節與公會方針會定期輪替。</li><li>角色會隨聲望主動加入；升級取得能力點，可自由培養。</li><li>素材可升級技能，也能在鐵匠鋪製作、強化或分解裝備。</li><li>從「隊伍」調整三名成員與實際出戰順序。</li><li>遠征失敗不會刪除進度；整備後再次出發。</li></ul><button class="action-btn" id="introOk">查看邊境局勢</button>';$('introOk').addEventListener('click',closeModal); }
+  function openIntro(){ $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalBody').innerHTML='<p>《灰燼公會》沒有固定主線。你決定今天值得冒什麼風險，也決定邊境會變成什麼模樣。</p><ul><li>敵人頭上的標記會預告下一個行動；累積「破勢」可打斷敵人。</li><li>每日任務、季節與公會方針會定期輪替。</li><li>角色會隨聲望主動加入；升級取得能力結晶，可自由培養。</li><li>裝備、技能與能力使用各自獨立的素材。</li><li>從「隊伍」調整三名成員與實際出戰順序。</li><li>遠征失敗不會刪除進度；整備後再次出發。</li></ul><button class="action-btn" id="introOk">查看邊境局勢</button>';$('introOk').addEventListener('click',closeModal); }
   function closeModal(){ $('modal').classList.remove('open');$('modal').setAttribute('aria-hidden','true');state.seenIntro=true;save(); }
 
   $('refreshBtn').addEventListener('click',()=>{if(state.gold<10)return toast('金幣不足');state.gold-=10;generateContracts();renderGuild();toast('新的委託已張貼');});

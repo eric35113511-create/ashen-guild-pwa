@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ashen-guild-v4-pwa-1';
+const CACHE_NAME = 'ashen-guild-v5-pwa-1';
 const APP_SHELL = [
   './',
   './index.html',
