@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ashen-guild-v9-character-art-1';
+const CACHE_NAME = 'ashen-guild-v12-legacy-trials';
 const APP_SHELL = [
   './',
   './index.html',
