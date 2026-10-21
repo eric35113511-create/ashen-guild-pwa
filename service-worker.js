@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ashen-guild-v5-pwa-1';
+const CACHE_NAME = 'ashen-guild-v9-character-art-1';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,31 @@ const APP_SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './assets/characters/bran/full.webp',
+  './assets/characters/bran/half.webp',
+  './assets/characters/bran/avatar.webp',
+  './assets/characters/bran/small.webp',
+  './assets/characters/mira/full.webp',
+  './assets/characters/mira/half.webp',
+  './assets/characters/mira/avatar.webp',
+  './assets/characters/mira/small.webp',
+  './assets/characters/sena/full.webp',
+  './assets/characters/sena/half.webp',
+  './assets/characters/sena/avatar.webp',
+  './assets/characters/sena/small.webp',
+  './assets/characters/riven/full.webp',
+  './assets/characters/riven/half.webp',
+  './assets/characters/riven/avatar.webp',
+  './assets/characters/riven/small.webp',
+  './assets/characters/alda/full.webp',
+  './assets/characters/alda/half.webp',
+  './assets/characters/alda/avatar.webp',
+  './assets/characters/alda/small.webp',
+  './assets/characters/tor/full.webp',
+  './assets/characters/tor/half.webp',
+  './assets/characters/tor/avatar.webp',
+  './assets/characters/tor/small.webp'
 ];
 
 self.addEventListener('install', event => {

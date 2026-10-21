@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "format": "webp",
+  "variants": {
+    "full": [1024, 1536],
+    "half": [768, 1024],
+    "avatar": [512, 512],
+    "small": [256, 384]
+  },
+  "characters": {
+    "bran": { "name": "布蘭", "color": "#c79b45", "direction": "front", "scene": "guild-courtyard" },
+    "mira": { "name": "米拉", "color": "#4f7c5b", "direction": "right-look-back", "scene": "forest-frontier" },
+    "sena": { "name": "瑟娜", "color": "#c75a3d", "direction": "back-look-left", "scene": "ember-shrine" },
+    "riven": { "name": "里文", "color": "#805b91", "direction": "left-high-angle", "scene": "rain-rooftop" },
+    "alda": { "name": "阿爾妲", "color": "#b8c9d6", "direction": "left-low-angle", "scene": "moon-chapel" },
+    "tor": { "name": "托爾", "color": "#438c8a", "direction": "right-low-side", "scene": "wind-tower" }
+  }
+}

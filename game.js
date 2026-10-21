@@ -3,7 +3,7 @@
 
   const LEGACY_SAVE_KEY = 'ashen-guild-save-v1';
   const SAVE_KEY = 'ashen-guild-save-v2';
-  const SAVE_VERSION = 5;
+  const SAVE_VERSION = 8;
   localStorage.removeItem(LEGACY_SAVE_KEY);
   const ranks = [
     { name: '灰燼級', min: 0, next: 100, mark: 'Ⅰ' },
@@ -21,7 +21,7 @@
   ];
 
   const relics = [
-    { id: 'whetstone', symbol: '/', name: '傭兵磨刀石', desc: '本次遠征全隊威力 +3。' },
+    { id: 'whetstone', symbol: '/', name: '傭兵磨刀石', desc: '本次遠征全隊物理威力 +3。' },
     { id: 'oak', symbol: 'O', name: '古橡護符', desc: '全隊生命上限與目前生命 +12。' },
     { id: 'quicksilver', symbol: 'Q', name: '水銀沙漏', desc: '全隊技能點上限 +1，立刻恢復 1 點。' },
     { id: 'ward', symbol: '△', name: '守夜者徽記', desc: '每場戰鬥開始時，全隊獲得 8 護盾。' },
@@ -34,7 +34,7 @@
     { id: 'five', name: '熟悉的道路', desc: '出發遠征 5 次', reward: 50, test: s => s.stats.expeditions >= 5 },
     { id: 'rank', name: '鐵炬之名', desc: '公會聲望達到 100', reward: 70, test: s => s.renown >= 100 },
     { id: 'days', name: '長明燈', desc: '公會經營至第 10 日', reward: 100, test: s => s.day >= 10 },
-    { id: 'builder', name: '不只是營地', desc: '任一公會設施升至三級', reward: 90, test: s => Object.values(s.facilities||{}).some(v=>v>=3) },
+    { id: 'prestige', name: '名聲遠播', desc: '公會聲望達到 300', reward: 90, test: s => s.renown>=300 },
     { id: 'trophies', name: '邊境獵手', desc: '蒐集三個不同區域的戰證', reward: 120, test: s => Object.keys(s.trophies||{}).filter(k=>s.trophies[k]>0).length>=3 },
     { id: 'chronicler', name: '寫進歷史', desc: '完成一條跨遠征事件鏈', reward: 80, test: s => Object.values(s.chains||{}).some(v=>v>=2) }
   ];
@@ -42,15 +42,15 @@
   const specializations = {
     bran: [
       { id: 'bulwark', name: '不動壁壘', symbol: '▣', desc: '生命上限 +20，立盾額外提供 5 護盾。' },
-      { id: 'breaker', name: '碎陣先鋒', symbol: '◆', desc: '威力 +3，造成的破勢提高 25%。' }
+      { id: 'breaker', name: '碎陣先鋒', symbol: '◆', desc: '物理威力 +3，造成的破勢提高 25%。' }
     ],
     mira: [
-      { id: 'deadeye', name: '鷹眼獵手', symbol: '⊙', desc: '威力 +4，貫穿箭傷害再提高 20%。' },
+      { id: 'deadeye', name: '鷹眼獵手', symbol: '⊙', desc: '物理威力 +4，貫穿箭傷害再提高 20%。' },
       { id: 'pathfinder', name: '荒野尋路者', symbol: '⌁', desc: '戰鬥金幣收益提高 20%，遠征事件治療量提高。' }
     ],
     sena: [
       { id: 'hearth', name: '守火醫者', symbol: '✚', desc: '所有治療效果提高 30%。' },
-      { id: 'storm', name: '雷燼術師', symbol: 'ϟ', desc: '威力 +4，星火新生額外造成 8 點破勢。' }
+      { id: 'storm', name: '雷燼術師', symbol: 'ϟ', desc: '魔法威力 +4，擅長在持續傷害與隊伍增益間切換。' }
     ],
     riven: [
       { id: 'duelist', name: '決鬥劍士', symbol: 'Ⅱ', desc: '對單一敵人的攻擊傷害提高 15%。' },
@@ -58,33 +58,33 @@
     ],
     alda: [
       { id: 'saint', name: '巡禮聖者', symbol: '✦', desc: '治療效果提高 25%，生命上限 +10。' },
-      { id: 'inquisitor', name: '異端審判者', symbol: '☼', desc: '威力 +4，攻擊額外造成破勢。' }
+      { id: 'inquisitor', name: '異端審判者', symbol: '☼', desc: '魔法威力 +4，攻擊額外造成破勢。' }
     ],
     tor: [
-      { id: 'vanguard', name: '疾風前鋒', symbol: '≫', desc: '威力 +3，每場戰鬥開始額外獲得技能點。' },
+      { id: 'vanguard', name: '疾風前鋒', symbol: '≫', desc: '物理威力 +3，每場戰鬥開始額外獲得技能點。' },
       { id: 'captain', name: '戰陣隊長', symbol: '♜', desc: '全隊生命上限 +8。' }
     ]
   };
 
   const heroTemplates = [
     {
-      id: 'bran', name: '布蘭', job: '盾衛', icon: 'B', color: '#d4a84d', maxHp: 92, maxSp: 3, power: 12,
+      id: 'bran', name: '布蘭', job: '盾衛', icon: 'B', color: '#c79b45', maxHp: 92, maxSp: 3, physicalPower: 12, magicPower: 4,
       skills: [
         { id: 'strike', name: '盾擊', desc: '造成傷害與 12 點破勢。', cost: 0, target: 'enemy', damage: 1, stagger: 12 },
         { id: 'guard', name: '立盾', desc: '全隊獲得 10 點護盾。', cost: 1, target: 'allies', shield: 10 },
         { id: 'challenge', name: '挑釁', desc: '獲得 24 護盾，敵人本輪集中攻擊自己。', cost: 2, target: 'self', shield: 24, taunt: true },
-        { id: 'crush', name: '碎岩猛擊', desc: '重擊並造成 30 點破勢。', cost: 2, target: 'enemy', damage: 1.45, stagger: 30 },
+        { id: 'crush', name: '震懾怒吼', desc: '削弱全體敵人並累積破勢。', cost: 2, target: 'enemies', weaken: 2, stagger: 12 },
         { id: 'intercept', name: '攔截陣線', desc: '全隊獲得護盾，自己進入挑釁。', cost: 2, target: 'allies', shield: 8, taunt: true },
         { id: 'revenge', name: '守勢反擊', desc: '獲得反擊姿態，受擊時反傷。', cost: 1, target: 'self', counter: 8 }
       ],
       ultimate:{id:'lastwall',name:'最後城牆',desc:'全隊獲得 28 護盾，布蘭強制挑釁。',target:'allies',shield:28,taunt:true}
     },
     {
-      id: 'mira', name: '米拉', job: '遊俠', icon: 'M', color: '#779b68', maxHp: 70, maxSp: 3, power: 15,
+      id: 'mira', name: '米拉', job: '遊俠', icon: 'M', color: '#4f7c5b', maxHp: 70, maxSp: 3, physicalPower: 15, magicPower: 4,
       skills: [
         { id: 'shot', name: '精準射擊', desc: '可靠的單體攻擊。', cost: 0, target: 'enemy', damage: 1.05, stagger: 7 },
         { id: 'mark', name: '獵人標記', desc: '造成傷害，使目標易傷 2 回合。', cost: 1, target: 'enemy', damage: .65, vulnerable: 2 },
-        { id: 'volley', name: '箭雨', desc: '攻擊所有敵人。', cost: 2, target: 'enemies', damage: .75 },
+        { id: 'volley', name: '風向號令', desc: '提高全隊威力，持續 2 回合。', cost: 2, target: 'allies', powerAll: 3, buffTurns: 2 },
         { id: 'pierce', name: '貫穿箭', desc: '高傷害且無視部分護甲。', cost: 2, target: 'enemy', damage: 1.7, pierce: true },
         { id: 'snare', name: '束縛陷阱', desc: '造成少量傷害並大幅累積破勢。', cost: 1, target: 'enemy', damage:.45, stagger:24 },
         { id: 'camouflage', name: '煙葉偽裝', desc: '本輪首次受擊完全閃避。', cost: 1, target: 'self', dodge:true }
@@ -92,46 +92,46 @@
       ultimate:{id:'arrowstorm',name:'星落箭雨',desc:'攻擊全體並施加 2 回合易傷。',target:'enemies',damage:1.25,vulnerable:2}
     },
     {
-      id: 'sena', name: '瑟娜', job: '燼術師', icon: 'S', color: '#6d91a5', maxHp: 62, maxSp: 4, power: 16,
+      id: 'sena', name: '瑟娜', job: '燼術師', icon: 'S', color: '#c75a3d', maxHp: 62, maxSp: 4, physicalPower: 5, magicPower: 16,
       skills: [
-        { id: 'spark', name: '燼火', desc: '造成法術傷害。', cost: 0, target: 'enemy', damage: 1 },
+        { id: 'spark', name: '燼火', desc: '造成法術傷害。', cost: 0, target: 'enemy', damage: 1, damageType:'magic' },
         { id: 'mend', name: '餘燼復甦', desc: '治療生命最低的隊友。', cost: 1, target: 'lowest', heal: 20 },
-        { id: 'burn', name: '灼魂', desc: '附加 3 回合燃燒。', cost: 2, target: 'enemy', damage: .7, burn: 3 },
-        { id: 'nova', name: '星火新生', desc: '傷害全體敵人並治療全隊。', cost: 3, target: 'enemies', damage: .65, healAll: 10 },
-        { id: 'frost', name: '冷燼封印', desc: '低傷害，但造成大量破勢。', cost: 1, target:'enemy', damage:.4, stagger:28 },
+        { id: 'burn', name: '灼魂', desc: '附加 3 回合燃燒。', cost: 2, target: 'enemy', damage: .7, burn: 3, damageType:'magic' },
+        { id: 'nova', name: '星火共鳴', desc: '治療、護盾並提高全隊威力。', cost: 3, target: 'allies', healAll: 8, shield:8, powerAll:2, buffTurns:2 },
+        { id: 'frost', name: '冷燼封印', desc: '低傷害，但造成大量破勢。', cost: 1, target:'enemy', damage:.4, stagger:28, damageType:'magic' },
         { id: 'warmth', name: '守夜餘溫', desc: '使全隊獲得持續恢復。', cost:2,target:'allies',regenAll:7 }
       ],
       ultimate:{id:'rekindle',name:'重燃命火',desc:'復甦倒下隊友並治療全隊。',target:'allies',reviveAll:.3,healAll:24,cleanseAll:true}
     },
     {
-      id: 'riven', name: '里文', job: '影刃', icon: 'R', color: '#a77891', maxHp: 66, maxSp: 4, power: 17, recruitCost: 145,
+      id: 'riven', name: '里文', job: '影刃', icon: 'R', color: '#805b91', maxHp: 66, maxSp: 4, physicalPower: 17, magicPower: 3, recruitCost: 145,
       skills: [
         { id: 'cut', name: '快斬', desc: '快速的單體攻擊。', cost: 0, target: 'enemy', damage: 1.05, stagger: 5 },
         { id: 'feint', name: '佯攻', desc: '造成傷害並施加易傷。', cost: 1, target: 'enemy', damage: .7, vulnerable: 2 },
-        { id: 'fan', name: '刃扇', desc: '攻擊所有敵人。', cost: 2, target: 'enemies', damage: .8 },
+        { id: 'fan', name: '煙幕', desc: '使全體敵人致盲 2 回合。', cost: 2, target: 'enemies', blind: 2 },
         { id: 'execute', name: '處決式', desc: '高傷害的單體終結技。', cost: 3, target: 'enemy', damage: 2.05, stagger: 12 },
-        { id: 'poisonedge', name: '淬毒刃', desc: '造成傷害並附加燃燒型持續傷害。', cost:1,target:'enemy',damage:.75,burn:3 },
+        { id: 'poisonedge', name: '裂甲毒', desc: '降低敵人護甲並施加易傷。', cost:1,target:'enemy',armorBreak:2,vulnerable:2 },
         { id: 'vanish', name: '消失', desc: '完全閃避本輪首次受擊並恢復技能點。', cost:2,target:'self',dodge:true,restoreSelf:1 }
       ],
       ultimate:{id:'deathdance',name:'死亡輪舞',desc:'連斬所有敵人，對低生命目標威力更高。',target:'enemies',damage:1.15,ultimateExecute:true}
     },
     {
-      id: 'alda', name: '阿爾妲', job: '祈誓者', icon: 'A', color: '#d6c58a', maxHp: 74, maxSp: 4, power: 12, recruitCost: 155,
+      id: 'alda', name: '阿爾妲', job: '祈誓者', icon: 'A', color: '#b8c9d6', maxHp: 74, maxSp: 4, physicalPower: 7, magicPower: 12, recruitCost: 155,
       skills: [
-        { id: 'smite', name: '懲戒', desc: '造成傷害與破勢。', cost: 0, target: 'enemy', damage: .95, stagger: 10 },
+        { id: 'smite', name: '懲戒', desc: '造成傷害與破勢。', cost: 0, target: 'enemy', damage: .95, stagger: 10, damageType:'magic' },
         { id: 'prayer', name: '療癒禱言', desc: '治療生命最低的隊友。', cost: 1, target: 'lowest', heal: 24 },
         { id: 'aegis', name: '誓約庇護', desc: '全隊獲得 13 護盾。', cost: 2, target: 'allies', shield: 13 },
         { id: 'sanctuary', name: '聖域', desc: '大幅治療全隊。', cost: 3, target: 'allies', healAll: 20 },
         { id: 'cleanse', name: '淨化儀式', desc: '清除全隊中毒並恢復少量生命。', cost:1,target:'allies',cleanseAll:true,healAll:6 },
-        { id: 'judgment', name: '審判之光', desc: '目標狀態越多，造成越高傷害。', cost:2,target:'enemy',damage:1.25,statusScale:true }
+        { id: 'judgment', name: '祝福聖印', desc: '提高全隊威力並減少承受傷害。', cost:2,target:'allies',powerAll:2,guardAll:.2,buffTurns:2 }
       ],
       ultimate:{id:'dawn',name:'黎明誓約',desc:'治療、淨化並賦予全隊護盾。',target:'allies',healAll:22,shield:18,cleanseAll:true}
     },
     {
-      id: 'tor', name: '托爾', job: '風槍手', icon: 'T', color: '#7aa0a0', maxHp: 80, maxSp: 3, power: 15, recruitCost: 150,
+      id: 'tor', name: '托爾', job: '風槍手', icon: 'T', color: '#438c8a', maxHp: 80, maxSp: 3, physicalPower: 15, magicPower: 5, recruitCost: 150,
       skills: [
         { id: 'thrust', name: '突刺', desc: '穩定的單體攻擊。', cost: 0, target: 'enemy', damage: 1, stagger: 9 },
-        { id: 'sweep', name: '橫掃', desc: '攻擊所有敵人。', cost: 1, target: 'enemies', damage: .62, stagger: 6 },
+        { id: 'sweep', name: '壓陣戰吼', desc: '降低全體敵人威力。', cost: 1, target: 'enemies', weaken: 2 },
         { id: 'rally', name: '振奮戰吼', desc: '全隊恢復 1 技能點。', cost: 2, target: 'allies', restoreAll: 1 },
         { id: 'skyfall', name: '墜星槍', desc: '強力攻擊並造成大量破勢。', cost: 3, target: 'enemy', damage: 1.75, stagger: 28 },
         { id: 'formation', name: '雁行陣', desc: '全隊獲得護盾與 1 技能點。', cost:2,target:'allies',shield:7,restoreAll:1 },
@@ -142,24 +142,24 @@
   ];
 
   const equipment = [
-    { id:'ironblade', name:'邊軍鐵刃', slot:'weapon', rarity:'common', cost:48, power:3, jobs:['盾衛','影刃','風槍手'], desc:'威力 +3' },
-    { id:'moonbow', name:'月枝長弓', slot:'weapon', rarity:'rare', trait:'opening', cost:76, power:4, jobs:['遊俠'], desc:'首輪攻擊傷害 +25%' },
-    { id:'ashstaff', name:'灰晶法杖', slot:'weapon', rarity:'rare', trait:'kindle', cost:82, power:4, sp:1, jobs:['燼術師','祈誓者'], desc:'施放治療後恢復自己 1 技能點' },
-    { id:'oathspear', name:'誓約長槍', slot:'weapon', rarity:'epic', trait:'momentum', cost:118, power:5, jobs:['風槍手','祈誓者'], desc:'擊破敵人破勢時恢復 1 技能點' },
-    { id:'thornknife', name:'荊棘短刀', slot:'weapon', rarity:'rare', trait:'execute', cost:78, power:3, jobs:['影刃','遊俠'], desc:'對生命低於 35% 的敵人傷害 +30%' },
-    { id:'bellhammer', name:'喪鐘戰鎚', slot:'weapon', rarity:'epic', trait:'aftershock', cost:125, power:4, jobs:['盾衛'], desc:'破勢攻擊會波及其他敵人' },
-    { id:'leather', name:'獵戶皮甲', slot:'armor', rarity:'common', cost:44, hp:12, desc:'生命 +12' },
-    { id:'plate', name:'灰鋼板甲', slot:'armor', rarity:'rare', trait:'warding', cost:82, hp:20, jobs:['盾衛','祈誓者'], desc:'每場戰鬥開始獲得 10 護盾' },
-    { id:'silk', name:'符文絲衣', slot:'armor', rarity:'rare', trait:'focus', cost:78, hp:8, sp:1, jobs:['燼術師','影刃'], desc:'每場首個付費技能少消耗 1 點' },
-    { id:'windcoat', name:'逐風外套', slot:'armor', rarity:'rare', trait:'evasion', cost:76, hp:14, jobs:['遊俠','風槍手'], desc:'每場第一次受擊傷害減半' },
+    { id:'ironblade', name:'邊軍鐵刃', slot:'weapon', rarity:'common', set:'frontier', cost:48, physicalPower:3, jobs:['盾衛','影刃','風槍手'], desc:'物理威力 +3' },
+    { id:'moonbow', name:'月枝長弓', slot:'weapon', rarity:'rare', set:'moon', trait:'opening', cost:76, physicalPower:4, jobs:['遊俠'], desc:'物理威力 +4；首輪攻擊傷害 +25%' },
+    { id:'ashstaff', name:'灰晶法杖', slot:'weapon', rarity:'rare', set:'ash', trait:'kindle', cost:82, magicPower:4, sp:1, jobs:['燼術師','祈誓者'], desc:'魔法威力 +4；施放治療後恢復自己 1 技能點' },
+    { id:'oathspear', name:'誓約長槍', slot:'weapon', rarity:'epic', set:'oath', trait:'momentum', cost:118, physicalPower:5, jobs:['風槍手','祈誓者'], desc:'物理威力 +5；擊破敵人破勢時恢復 1 技能點' },
+    { id:'thornknife', name:'荊棘短刀', slot:'weapon', rarity:'rare', trait:'execute', cost:78, physicalPower:3, jobs:['影刃','遊俠'], desc:'物理威力 +3；對生命低於 35% 的敵人傷害 +30%' },
+    { id:'bellhammer', name:'喪鐘戰鎚', slot:'weapon', rarity:'epic', trait:'aftershock', cost:125, physicalPower:4, jobs:['盾衛'], desc:'物理威力 +4；破勢攻擊會波及其他敵人' },
+    { id:'leather', name:'獵戶皮甲', slot:'armor', rarity:'common', set:'frontier', cost:44, hp:12, desc:'生命 +12' },
+    { id:'plate', name:'灰鋼板甲', slot:'armor', rarity:'rare', set:'oath', trait:'warding', cost:82, hp:20, jobs:['盾衛','祈誓者'], desc:'每場戰鬥開始獲得 10 護盾' },
+    { id:'silk', name:'符文絲衣', slot:'armor', rarity:'rare', set:'ash', trait:'focus', cost:78, hp:8, sp:1, jobs:['燼術師','影刃'], desc:'每場首個付費技能少消耗 1 點' },
+    { id:'windcoat', name:'逐風外套', slot:'armor', rarity:'rare', set:'moon', trait:'evasion', cost:76, hp:14, jobs:['遊俠','風槍手'], desc:'每場第一次受擊傷害減半' },
     { id:'mirecloak', name:'沼行斗篷', slot:'armor', rarity:'common', trait:'antidote', cost:55, hp:10, desc:'中毒持續時間減少 1 回合' },
     { id:'phoenixmail', name:'不熄羽衣', slot:'armor', rarity:'epic', trait:'laststand', cost:132, hp:16, jobs:['燼術師','祈誓者'], desc:'每次遠征首次致命傷改為保留 1 生命' },
-    { id:'fang', name:'狼牙墜飾', slot:'charm', rarity:'common', trait:'hunt', cost:52, power:2, hp:6, desc:'擊倒敵人恢復 4 生命' },
-    { id:'amber', name:'琥珀護符', slot:'charm', rarity:'rare', trait:'purify', cost:80, hp:12, sp:1, desc:'戰鬥結束時清除中毒' },
-    { id:'guildseal', name:'老會長印戒', slot:'charm', rarity:'epic', trait:'command', cost:126, power:2, hp:10, desc:'開戰時全隊獲得 1 技能點' },
-    { id:'glassstar', name:'玻璃星盤', slot:'charm', rarity:'epic', trait:'wildfire', cost:122, power:3, jobs:['燼術師','祈誓者'], desc:'燃燒可額外跳躍至另一名敵人' },
+    { id:'fang', name:'狼牙墜飾', slot:'charm', rarity:'common', set:'frontier', trait:'hunt', cost:52, physicalPower:2, hp:6, desc:'物理威力 +2；擊倒敵人恢復 4 生命' },
+    { id:'amber', name:'琥珀護符', slot:'charm', rarity:'rare', set:'moon', trait:'purify', cost:80, hp:12, sp:1, desc:'戰鬥結束時清除中毒' },
+    { id:'guildseal', name:'老會長印戒', slot:'charm', rarity:'epic', set:'oath', trait:'command', cost:126, physicalPower:1, magicPower:1, hp:10, desc:'物理／魔法威力 +1；開戰時全隊獲得 1 技能點' },
+    { id:'glassstar', name:'玻璃星盤', slot:'charm', rarity:'epic', set:'ash', trait:'wildfire', cost:122, magicPower:3, jobs:['燼術師','祈誓者'], desc:'魔法威力 +3；燃燒可跳躍至另一名敵人' },
     { id:'coppercoin', name:'缺角幸運幣', slot:'charm', rarity:'common', trait:'fortune', cost:46, hp:5, desc:'裝備掉落機率稍微提高' },
-    { id:'chainmark', name:'斷鏈徽記', slot:'charm', rarity:'rare', trait:'resolve', cost:84, power:2, desc:'生命低於一半時，破勢量提高 30%' }
+    { id:'chainmark', name:'斷鏈徽記', slot:'charm', rarity:'rare', trait:'resolve', cost:84, physicalPower:1, magicPower:1, desc:'雙威力 +1；生命低於一半時破勢量提高 30%' }
   ];
 
   const rarityInfo={common:{name:'普通',color:'#a7a99e'},rare:{name:'稀有',color:'#6ea4c8'},epic:{name:'史詩',color:'#bd79cf'}};
@@ -176,27 +176,31 @@
   };
   const injuries=[
     {id:'wound',name:'撕裂傷',days:2,desc:'生命上限 -12',hp:-12},
-    {id:'sprain',name:'筋腱拉傷',days:2,desc:'威力 -3',power:-3},
-    {id:'shock',name:'魔力震盪',days:3,desc:'技能點上限 -1',sp:-1}
+    {id:'sprain',name:'筋腱拉傷',days:2,desc:'物理威力 -3',physicalPower:-3},
+    {id:'shock',name:'魔力震盪',days:3,desc:'魔法威力 -3、技能點上限 -1',magicPower:-3,sp:-1}
   ];
 
   const enemyTemplates = {
-    wolf: { name: '荒原狼', icon: 'W', hp: 42, power: 9, armor: 0, staggerMax: 35, color: '#b77d61' },
-    bandit: { name: '流寇', icon: 'R', hp: 56, power: 11, armor: 2, staggerMax: 45, color: '#bb6a54' },
-    shaman: { name: '腐枝薩滿', icon: 'S', hp: 48, power: 10, armor: 1, staggerMax: 40, color: '#8d7563', support: true },
-    spider: { name: '墓穴毒蛛', icon: 'A', hp: 38, power: 7, armor: 0, staggerMax: 32, color: '#8b718e', venomous: true },
-    wisp: { name: '殘光妖火', icon: 'I', hp: 36, power: 8, armor: 0, staggerMax: 30, color: '#7295a9', healer: true },
-    cultist: { name: '灰冠祭徒', icon: 'C', hp: 62, power: 12, armor: 2, staggerMax: 48, color: '#9b6572' },
-    golem: { name: '苔岩魔像', icon: 'G', hp: 88, power: 14, armor: 5, staggerMax: 60, color: '#7e806c' },
-    warden: { name: '失落守衛', icon: 'V', hp: 122, power: 16, armor: 4, staggerMax: 75, color: '#9d705b', boss: true }
+    wolf: { name: '荒原狼', icon: 'W', hp: 42, power: 9, armor: 0, magicResist:0, staggerMax: 35, color: '#b77d61' },
+    bandit: { name: '流寇', icon: 'R', hp: 56, power: 11, armor: 2, magicResist:1, staggerMax: 45, color: '#bb6a54' },
+    shaman: { name: '腐枝薩滿', icon: 'S', hp: 48, power: 10, armor: 1, magicResist:3, staggerMax: 40, color: '#8d7563', support: true },
+    spider: { name: '墓穴毒蛛', icon: 'A', hp: 38, power: 7, armor: 0, magicResist:1, staggerMax: 32, color: '#8b718e', venomous: true },
+    wisp: { name: '殘光妖火', icon: 'I', hp: 36, power: 8, armor: 0, magicResist:4, staggerMax: 30, color: '#7295a9', healer: true },
+    cultist: { name: '灰冠祭徒', icon: 'C', hp: 62, power: 12, armor: 2, magicResist:3, staggerMax: 48, color: '#9b6572' },
+    golem: { name: '苔岩魔像', icon: 'G', hp: 88, power: 14, armor: 5, magicResist:2, staggerMax: 60, color: '#7e806c' },
+    harpy: { name: '裂風妖鳥', icon: 'H', hp: 44, power: 10, armor: 0, magicResist:1, staggerMax: 34, color: '#8aa0a5', disruptor: true },
+    hexer: { name: '枯印咒師', icon: 'X', hp: 52, power: 9, armor: 1, magicResist:4, staggerMax: 42, color: '#9a708d', hexer: true },
+    leech: { name: '血沼潛獸', icon: 'L', hp: 68, power: 12, armor: 1, magicResist:2, staggerMax: 46, color: '#8e5f59', drainer: true },
+    sentinel: { name: '鏽誓哨兵', icon: 'K', hp: 76, power: 11, armor: 4, magicResist:1, staggerMax: 56, color: '#89806d', protector: true },
+    warden: { name: '失落守衛', icon: 'V', hp: 122, power: 16, armor: 4, magicResist:4, staggerMax: 75, color: '#9d705b', boss: true }
   };
 
   const contractSeeds = [
-    { zone: '狼煙丘陵', title: '失蹤的商旅', desc: '車轍停在舊道中央。找回貨物，或至少帶回商隊的消息。', risk: 1, accent: '#c9a252', pool: ['wolf', 'bandit'] },
-    { zone: '腐根沼地', title: '會走路的藥草', desc: '藥師願為一株夜光苔付出高價，只是沼地最近並不安靜。', risk: 2, accent: '#779b68', pool: ['wolf', 'shaman', 'spider'] },
-    { zone: '碎石古道', title: '沉默的哨塔', desc: '連續三夜沒有烽火升起。軍需官要一份現場勘查報告。', risk: 2, accent: '#b77d61', pool: ['bandit', 'golem'] },
-    { zone: '灰冠遺跡', title: '封印下的回聲', desc: '探勘隊挖出不該甦醒的東西。高風險，也意味著高報酬。', risk: 3, accent: '#a77891', pool: ['shaman', 'spider', 'wisp', 'cultist', 'golem', 'warden'] },
-    { zone: '北風林線', title: '冬糧護送', desc: '護送補給穿越獸群領地。每一袋糧食都能讓聚落多撐一天。', risk: 1, accent: '#6d91a5', pool: ['wolf', 'wolf', 'bandit'] }
+    { zone: '狼煙丘陵', title: '失蹤的商旅', desc: '車轍停在舊道中央。找回貨物，或至少帶回商隊的消息。', risk: 1, accent: '#c9a252', pool: ['wolf', 'bandit', 'harpy'] },
+    { zone: '腐根沼地', title: '會走路的藥草', desc: '藥師願為一株夜光苔付出高價，只是沼地最近並不安靜。', risk: 2, accent: '#779b68', pool: ['wolf', 'shaman', 'spider', 'leech'] },
+    { zone: '碎石古道', title: '沉默的哨塔', desc: '連續三夜沒有烽火升起。軍需官要一份現場勘查報告。', risk: 2, accent: '#b77d61', pool: ['bandit', 'golem', 'sentinel'] },
+    { zone: '灰冠遺跡', title: '封印下的回聲', desc: '探勘隊挖出不該甦醒的東西。高風險，也意味著高報酬。', risk: 3, accent: '#a77891', pool: ['shaman', 'spider', 'wisp', 'cultist', 'golem', 'hexer', 'sentinel', 'warden'] },
+    { zone: '北風林線', title: '冬糧護送', desc: '護送補給穿越獸群領地。每一袋糧食都能讓聚落多撐一天。', risk: 1, accent: '#6d91a5', pool: ['wolf', 'wolf', 'bandit', 'harpy'] }
   ];
 
   const seasons = [
@@ -211,13 +215,41 @@
     { id:'salvage', name:'整備需求', desc:'帶回 2 件裝備', type:'gear', target:2, gold:60, renown:26 },
     { id:'crisis', name:'緊急動員', desc:'化解 1 場區域危機', type:'crisis', target:1, gold:110, renown:35 }
   ];
-  const facilityDefs = {
-    scouts:{name:'斥候塔',desc:['顯示精確區域威脅','路線提供三個選擇','危機契約額外降低 8 點威脅']},
-    forgehouse:{name:'大鍛造間',desc:['解鎖稀有裝備製作','分解素材 +25%','解鎖史詩裝備製作']},
-    training:{name:'訓練庭',desc:['升級技能素材 -10%','角色升級額外獲得能力結晶','升級技能素材再 -10%']},
-    archive:{name:'英雄檔案館',desc:['頭目首勝獎勵提高','編年史容量增加','危機聲望 +20%']}
+  const renownPerks=[
+    {id:'routes',need:60,name:'邊境情報網',desc:'遠征岔路固定提供三個選擇'},
+    {id:'rareCraft',need:80,name:'稀有軍備許可',desc:'遠征可掉落、鐵匠鋪可製作稀有裝備'},
+    {id:'salvage',need:160,name:'回收專精',desc:'分解裝備取得的素材 +25%'},
+    {id:'mentor',need:220,name:'導師名冊',desc:'角色升級額外獲得 1 枚能力結晶'},
+    {id:'epicCraft',need:300,name:'史詩軍備許可',desc:'遠征可掉落、鐵匠鋪可製作史詩裝備'},
+    {id:'legacy',need:400,name:'英雄傳承',desc:'危機契約聲望 +20%，首勝額外獲得 30 金幣'}
+  ];
+  const talentDefs={
+    bran:[['守壁',[['bran_wall','厚重盾面','護盾技能 +5','shieldBoost',5],['bran_guard','不動壁壘','守護減傷額外 +10%','guardBoost',.1]]],['反擊',[['bran_counter','荊棘架勢','反擊傷害 +4','counterBoost',4],['bran_grit','鋼鐵意志','生命上限 +10','hpBoost',10]]],['震懾',[['bran_break','盾陣教範','破勢效果 +15%','staggerRate',.15],['bran_roar','威壓怒吼','弱化效果額外 -1 威力','weakenBoost',1]]]],
+    mira:[['獵殺',[['mira_mark','深刻標記','易傷延長 1 回合','debuffTurns',1],['mira_hunt','弱點追獵','對易傷目標傷害 +15%','vulnerableDamage',.15]]],['號令',[['mira_wind','順風旗語','隊伍威力增益 +1','buffPower',1],['mira_long','持續號令','我方增益延長 1 回合','buffTurns',1]]],['陷阱',[['mira_snare','鋼索陷阱','破勢技能額外 +6','staggerFlat',6],['mira_smoke','遮蔽獵場','致盲延長 1 回合','blindTurns',1]]]],
+    sena:[['燼火',[['sena_burn','餘火不滅','燃燒延長 1 回合','burnTurns',1],['sena_flame','灼熱核心','燃燒每回合傷害 +3','burnDamage',3]]],['守火',[['sena_heal','溫暖火種','治療量 +15%','healRate',.15],['sena_regen','長明餘燼','持續恢復量 +2','regenBoost',2]]],['共鳴',[['sena_magic','灰晶共振','魔法威力 +3','magicBoost',3],['sena_chorus','星火合唱','隊伍威力增益 +1','buffPower',1]]]],
+    riven:[['暗影',[['riven_smoke','濃重煙幕','致盲延長 1 回合','blindTurns',1],['riven_vanish','無聲退場','閃避技能額外恢復 1 技能點','dodgeSp',1]]],['毒術',[['riven_armor','腐蝕配方','裂甲效果 +1','armorBreakBoost',1],['riven_expose','滲透毒素','易傷延長 1 回合','debuffTurns',1]]],['處決',[['riven_edge','致命節奏','對半血以下敵人傷害 +15%','executeDamage',.15],['riven_speed','迅捷手法','物理威力 +3','physicalBoost',3]]]],
+    alda:[['恩典',[['alda_heal','豐饒禱文','治療量 +15%','healRate',.15],['alda_aegis','聖盾禱文','護盾技能 +5','shieldBoost',5]]],['祝福',[['alda_long','悠長祝福','我方增益延長 1 回合','buffTurns',1],['alda_guard','堅定聖印','守護減傷額外 +10%','guardBoost',.1]]],['審判',[['alda_magic','聖光灌注','魔法威力 +3','magicBoost',3],['alda_rebuke','斥責','弱化效果額外 -1 威力','weakenBoost',1]]]],
+    tor:[['戰陣',[['tor_shield','密集隊形','護盾技能 +4','shieldBoost',4],['tor_guard','互相掩護','守護減傷額外 +10%','guardBoost',.1]]],['號令',[['tor_rally','高昂戰意','恢復技能點效果 +1','restoreBoost',1],['tor_long','軍令如山','我方增益延長 1 回合','buffTurns',1]]],['破軍',[['tor_break','破陣槍術','破勢效果 +15%','staggerRate',.15],['tor_pierce','甲冑剋星','裂甲效果 +1','armorBreakBoost',1]]]]
+  };
+  const gearAffixDefs=[
+    {id:'sturdy',name:'堅固',desc:'生命 +6',hp:6},{id:'keen',name:'銳利',desc:'物理威力 +2',physicalPower:2},{id:'arcane',name:'秘法',desc:'魔法威力 +2',magicPower:2},{id:'focused',name:'專注',desc:'技能點上限 +1',sp:1},{id:'warded',name:'護佑',desc:'開戰護盾 +5',startShield:5}
+  ];
+  const bondSpecials={
+    'alda-bran':'護盾技能額外 +3','mira-riven':'攻擊易傷目標傷害 +10%','sena-tor':'我方增益延長 1 回合',
+    'bran-tor':'破勢效果 +10%','mira-sena':'治療與持續恢復 +10%','alda-riven':'敵方負面狀態延長 1 回合'
   };
   const materialDefs={scrap:{name:'鐵屑',symbol:'▰',group:'gear',desc:'鍛造武器與強化裝備'},cloth:{name:'韌布',symbol:'▧',group:'gear',desc:'製作護甲與防具'},essence:{name:'灰燼精華',symbol:'✦',group:'gear',desc:'製作飾品與稀有裝備'},bossCore:{name:'鍛造核心',symbol:'◆',group:'gear',desc:'史詩裝備製作與強化'},skillDust:{name:'戰技殘頁',symbol:'頁',group:'skill',desc:'技能第一階升級'},skillCore:{name:'奧義印記',symbol:'印',group:'skill',desc:'技能精通階段專用'},growthCrystal:{name:'能力結晶',symbol:'晶',group:'ability',desc:'分配角色體魄、力量與專注'}};
+  const marketCatalog=[
+    {id:'scrap',name:'鐵屑箱',desc:'裝備素材 ×5',price:30,type:'material',key:'scrap',amount:5},
+    {id:'cloth',name:'韌布捆',desc:'裝備素材 ×4',price:32,type:'material',key:'cloth',amount:4},
+    {id:'essence',name:'精華瓶',desc:'裝備素材 ×2',price:48,type:'material',key:'essence',amount:2},
+    {id:'skillDust',name:'戰技抄本',desc:'戰技殘頁 ×3',price:55,type:'material',key:'skillDust',amount:3},
+    {id:'growthCrystal',name:'能力結晶',desc:'能力素材 ×1',price:90,type:'material',key:'growthCrystal',amount:1},
+    {id:'supply',name:'遠征補給',desc:'遠征事件可消耗的補給 ×1',price:45,type:'supply',amount:1},
+    {id:'treatment',name:'醫療憑證',desc:'立即治療一名受傷角色',price:70,type:'treatment'},
+    {id:'skillCore',name:'奧義印記',desc:'技能精通素材 ×1',price:160,type:'material',key:'skillCore',amount:1,need:220},
+    {id:'bossCore',name:'鍛造核心',desc:'史詩裝備素材 ×1',price:180,type:'material',key:'bossCore',amount:1,need:300}
+  ];
   const joinThresholds={riven:80,tor:180,alda:320};
   const dailyQuestDefs=[
     {id:'battles',name:'清理道路',desc:'贏得 2 場戰鬥',type:'battle',target:2,reward:{gold:24,skillDust:2}},
@@ -227,7 +259,7 @@
     {id:'dismantle',name:'物資回收',desc:'分解 1 件裝備',type:'dismantle',target:1,reward:{scrap:4,growthCrystal:1}}
   ];
 
-  const freshState = () => ({ day: 1, gold: 120, renown: 0, supplies: 2, difficulty:'frontier', upgrades: { forge: 0, infirmary: 0 }, facilities:{scouts:0,forgehouse:0,training:0,archive:0},materials:{scrap:8,cloth:5,essence:3,bossCore:0,skillDust:4,skillCore:0,growthCrystal:3},gearLevels:{},daily:null,regions:Object.fromEntries(contractSeeds.map((c,i)=>[c.zone,{threat:24+i*7,cleared:0,crises:0}])), directive:null, trophies:{}, chronicle:[], chains:{}, contracts: [], heroes: heroTemplates.map(h => ({ ...h, level: 1, xp: 0,attributes:{vitality:0,might:0,focus:0}, skillRanks:{}, activeSkills:h.skills.slice(0,4).map(s=>s.id), injury:null, owned: !joinThresholds[h.id], equipment: { weapon: null, armor: null, charm: null } })), activeParty: ['bran','mira','sena'], inventory: ['ironblade','leather'], shopStock: [], discovered:{enemies:[],equipment:['ironblade','leather'],zones:[]}, seenIntro: false, stats: { wins: 0, expeditions: 0, completed: 0 }, achievements: {} });
+  const freshState = () => ({ day: 1, gold: 120, renown: 0, supplies: 2, difficulty:'frontier', upgrades: { forge: 0, infirmary: 0 },materials:{scrap:8,cloth:5,essence:3,bossCore:0,skillDust:4,skillCore:0,growthCrystal:3},gearLevels:{},gearAffixes:{},bonds:{},daily:null,regions:Object.fromEntries(contractSeeds.map((c,i)=>[c.zone,{threat:24+i*7,cleared:0,crises:0}])), directive:null, trophies:{}, chronicle:[], chains:{}, contracts: [], heroes: heroTemplates.map(h => ({ ...h, level: 1, xp: 0,attributes:{vitality:0,might:0,magic:0,focus:0},talents:[],bonusTalentPoints:0,breakthrough:0,skillRanks:{},skillEvolutions:{}, activeSkills:h.skills.slice(0,4).map(s=>s.id), injury:null, owned: !joinThresholds[h.id], equipment: { weapon: null, armor: null, charm: null } })), activeParty: ['bran','mira','sena'], inventory: ['ironblade','leather'], shopStock: [], marketRefreshes:0, discovered:{enemies:[],equipment:['ironblade','leather'],zones:[]}, seenIntro: false, stats: { wins: 0, expeditions: 0, completed: 0 }, achievements: {} });
   let state;
   let expedition = null;
   let combat = null;
@@ -243,15 +275,19 @@
   const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   state = normalizeState(load());
+  [...state.inventory,...state.heroes.flatMap(h=>Object.values(h.equipment||{}).filter(Boolean))].forEach(ensureGearAffix);
 
   function normalizeState(s){
     s.day=Math.max(1,Math.floor(Number(s.day)||1));s.gold=Math.max(0,Math.floor(Number(s.gold)||0));s.renown=Math.max(0,Math.floor(Number(s.renown)||0));s.supplies=clamp(Math.floor(Number(s.supplies)||0),0,5);
-    Object.keys(facilityDefs).forEach(id=>s.facilities[id]=clamp(Math.floor(Number(s.facilities[id])||0),0,3));
     Object.keys(materialDefs).forEach(id=>s.materials[id]=Math.max(0,Math.floor(Number(s.materials[id])||0)));
-    if((s.saveVersion||0)<5)s.materials.growthCrystal+=s.heroes.reduce((n,h)=>n+(h.attributePoints||0),0);s.heroes.forEach(h=>delete h.attributePoints);s.saveVersion=SAVE_VERSION;
+    if((s.saveVersion||0)<5)s.materials.growthCrystal+=s.heroes.reduce((n,h)=>n+(h.attributePoints||0),0);s.heroes.forEach(h=>delete h.attributePoints);
+    if((s.saveVersion||0)<6&&s.facilities){const costs=[0,95,265,510];s.gold+=Object.values(s.facilities).reduce((sum,lv)=>sum+(costs[clamp(Math.floor(Number(lv)||0),0,3)]||0),0);}delete s.facilities;
+    if((s.saveVersion||0)<7)s.heroes.forEach(h=>{if(h.injury?.id==='sprain'){delete h.injury.power;h.injury.physicalPower=-3;}if(h.injury?.id==='shock')h.injury.magicPower=-3;});s.saveVersion=SAVE_VERSION;
+    s.gearAffixes=s.gearAffixes&&typeof s.gearAffixes==='object'?s.gearAffixes:{};s.bonds=s.bonds&&typeof s.bonds==='object'?s.bonds:{};
+    s.heroes.forEach(h=>{h.talents=Array.isArray(h.talents)?h.talents.filter(id=>talentDefs[h.id]?.some(([,nodes])=>nodes.some(n=>n[0]===id))):[];h.bonusTalentPoints=Math.max(0,Math.floor(Number(h.bonusTalentPoints)||0));h.skillEvolutions=h.skillEvolutions&&typeof h.skillEvolutions==='object'?h.skillEvolutions:{};h.breakthrough=Math.max(h.level>=11?2:h.level>=6?1:0,clamp(Math.floor(Number(h.breakthrough)||0),0,2));});
     Object.values(s.regions).forEach(r=>{r.threat=clamp(Math.floor(Number(r.threat)||0),0,100);r.cleared=Math.max(0,Math.floor(Number(r.cleared)||0));r.crises=Math.max(0,Math.floor(Number(r.crises)||0));});
     s.activeParty=(Array.isArray(s.activeParty)?s.activeParty:[]).filter((id,i,a)=>a.indexOf(id)===i&&s.heroes.some(h=>h.id===id&&h.owned)).slice(0,3);if(!s.activeParty.length)s.activeParty=s.heroes.filter(h=>h.owned).slice(0,3).map(h=>h.id);
-    s.inventory=Array.isArray(s.inventory)?s.inventory.filter(id=>equipment.some(i=>i.id===id)):[];s.contracts=Array.isArray(s.contracts)?s.contracts:[];s.shopStock=Array.isArray(s.shopStock)?s.shopStock:[];s.chronicle=Array.isArray(s.chronicle)?s.chronicle:[];
+    s.inventory=Array.isArray(s.inventory)?s.inventory.filter(id=>equipment.some(i=>i.id===id)):[];s.contracts=Array.isArray(s.contracts)?s.contracts:[];s.shopStock=Array.isArray(s.shopStock)?s.shopStock.filter(x=>x&&typeof x==='object'&&marketCatalog.some(i=>i.id===x.itemId)):[];s.marketRefreshes=Math.max(0,Math.floor(Number(s.marketRefreshes)||0));s.chronicle=Array.isArray(s.chronicle)?s.chronicle:[];
     if(s.directive&&!directiveDefs.some(d=>d.id===s.directive.id))s.directive=null;return s;
   }
 
@@ -259,7 +295,7 @@
     try {
       const parsed = JSON.parse(localStorage.getItem(SAVE_KEY));
       const base = freshState();
-      return parsed ? { ...base, ...parsed, upgrades: { ...base.upgrades, ...parsed.upgrades }, facilities:{...base.facilities,...parsed.facilities},materials:{...base.materials,...parsed.materials},gearLevels:{...base.gearLevels,...parsed.gearLevels},regions:Object.fromEntries(Object.entries(base.regions).map(([z,v])=>[z,{...v,...parsed.regions?.[z]}])), trophies:{...base.trophies,...parsed.trophies}, chains:{...base.chains,...parsed.chains}, chronicle:parsed.chronicle||[], stats: { ...base.stats, ...parsed.stats }, achievements: { ...base.achievements, ...parsed.achievements }, discovered:{...base.discovered,...parsed.discovered}, activeParty: parsed.activeParty || base.activeParty, inventory: parsed.inventory || base.inventory, shopStock: parsed.shopStock || [], heroes: heroTemplates.map(h => { const old=parsed.heroes?.find?.(x=>x.id===h.id); return { ...h, level:1, xp:0, attributePoints:Math.max(0,(old?.level||1)-1),attributes:{vitality:0,might:0,focus:0}, skillRanks:{}, activeSkills:h.skills.slice(0,4).map(s=>s.id), injury:null, owned:!joinThresholds[h.id], ...old, skills:h.skills, ultimate:h.ultimate,attributes:{vitality:0,might:0,focus:0,...old?.attributes}, activeSkills:(old?.activeSkills||h.skills.slice(0,4).map(s=>s.id)).filter(id=>h.skills.some(s=>s.id===id)).slice(0,4), skillRanks:{...(old?.skillRanks||{})}, equipment:{ weapon:null, armor:null, charm:null, ...(old?.equipment||{}) } }; }) } : base;
+      return parsed ? { ...base, ...parsed, upgrades: { ...base.upgrades, ...parsed.upgrades },materials:{...base.materials,...parsed.materials},gearLevels:{...base.gearLevels,...parsed.gearLevels},gearAffixes:{...base.gearAffixes,...parsed.gearAffixes},bonds:{...base.bonds,...parsed.bonds},regions:Object.fromEntries(Object.entries(base.regions).map(([z,v])=>[z,{...v,...parsed.regions?.[z]}])), trophies:{...base.trophies,...parsed.trophies}, chains:{...base.chains,...parsed.chains}, chronicle:parsed.chronicle||[], stats: { ...base.stats, ...parsed.stats }, achievements: { ...base.achievements, ...parsed.achievements }, discovered:{...base.discovered,...parsed.discovered}, activeParty: parsed.activeParty || base.activeParty, inventory: parsed.inventory || base.inventory, shopStock: parsed.shopStock || [], heroes: heroTemplates.map(h => { const old=parsed.heroes?.find?.(x=>x.id===h.id); return { ...h, level:1, xp:0, attributePoints:Math.max(0,(old?.level||1)-1),attributes:{vitality:0,might:0,magic:0,focus:0},talents:[],bonusTalentPoints:0,breakthrough:0,skillRanks:{},skillEvolutions:{}, activeSkills:h.skills.slice(0,4).map(s=>s.id), injury:null, owned:!joinThresholds[h.id], ...old, physicalPower:h.physicalPower,magicPower:h.magicPower,skills:h.skills, ultimate:h.ultimate,attributes:{vitality:0,might:0,magic:0,focus:0,...old?.attributes},talents:[...(old?.talents||[])],skillEvolutions:{...(old?.skillEvolutions||{})}, activeSkills:(old?.activeSkills||h.skills.slice(0,4).map(s=>s.id)).filter(id=>h.skills.some(s=>s.id===id)).slice(0,4), skillRanks:{...(old?.skillRanks||{})}, equipment:{ weapon:null, armor:null, charm:null, ...(old?.equipment||{}) } }; }) } : base;
     } catch { return freshState(); }
   }
 
@@ -284,7 +320,22 @@
   function specInfo(hero) { return specializations[hero.id]?.find(s => s.id === hero.specialization); }
   function dailyModifier() { return worldModifiers[(state.day - 1) % worldModifiers.length]; }
   function currentSeason(){return seasons[Math.floor((state.day-1)/7)%seasons.length];}
-  function addChronicle(text){state.chronicle.unshift({day:state.day,text});state.chronicle=state.chronicle.slice(0,20+(state.facilities.archive||0)*10);}
+  function addChronicle(text){state.chronicle.unshift({day:state.day,text});state.chronicle=state.chronicle.slice(0,30);}
+  function hasRenownPerk(id){const perk=renownPerks.find(p=>p.id===id);return !!perk&&state.renown>=perk.need;}
+  function talentValue(hero,key){let total=0;(hero.talents||[]).forEach(id=>{talentDefs[hero.id]?.forEach(([,nodes])=>nodes.forEach(n=>{if(n[0]===id&&n[3]===key)total+=n[4];}));});return total;}
+  function talentPoints(hero){return Math.max(0,Math.floor((hero.level-1)/2)+(hero.bonusTalentPoints||0)-(hero.talents?.length||0));}
+  function bondKey(a,b){return [a,b].sort().join('-');}
+  function bondLevel(a,b){const n=state.bonds[bondKey(a,b)]||0;return n>=8?2:n>=3?1:0;}
+  function heroEffect(hero,key){
+    let value=talentValue(hero,key);const active=state.activeParty.filter(id=>id!==hero.id);
+    active.forEach(other=>{if(bondLevel(hero.id,other)<2)return;const pair=bondKey(hero.id,other);const effects={'alda-bran':{shieldBoost:3},'mira-riven':{vulnerableDamage:.1},'sena-tor':{buffTurns:1},'bran-tor':{staggerRate:.1},'mira-sena':{healRate:.1},'alda-riven':{debuffTurns:1}};value+=effects[pair]?.[key]||0;});
+    return value;
+  }
+  function setCounts(hero){return Object.values(hero.equipment||{}).reduce((m,id)=>{const set=equipment.find(i=>i.id===id)?.set;if(set)m[set]=(m[set]||0)+1;return m;},{});}
+  function setBonusText(set){return {frontier:'2 件：生命 +8',moon:'2 件：物理威力 +2',ash:'2 件：魔法威力 +2、技能點 +1',oath:'2 件：開戰護盾 +8'}[set]||'';}
+  function ensureGearAffix(id){if(!id)return null;if(!state.gearAffixes[id])state.gearAffixes[id]=pick(gearAffixDefs).id;return gearAffixDefs.find(a=>a.id===state.gearAffixes[id]);}
+  function gearAffix(id){return gearAffixDefs.find(a=>a.id===state.gearAffixes[id])||ensureGearAffix(id);}
+  function breakthroughCap(hero){return [5,10,15][hero.breakthrough||0];}
   function ensureDaily(){if(state.daily?.day===state.day)return;const offset=(state.day-1)%dailyQuestDefs.length;const chosen=[0,1,2].map(i=>dailyQuestDefs[(offset+i)%dailyQuestDefs.length]);state.daily={day:state.day,tasks:chosen.map(q=>({id:q.id,progress:0,claimed:false}))};}
   function rewardText(reward){return Object.entries(reward).map(([id,n])=>id==='gold'?`${n} G`:`${materialDefs[id]?.name||id}×${n}`).join('、');}
   function progressDaily(type,amount=1){ensureDaily();state.daily.tasks.forEach(t=>{const q=dailyQuestDefs.find(x=>x.id===t.id);if(!q||q.type!==type||t.claimed)return;t.progress=Math.min(q.target,t.progress+amount);if(t.progress>=q.target){t.claimed=true;Object.entries(q.reward).forEach(([id,n])=>{if(id==='gold')state.gold+=n;else state.materials[id]+=n;});toast(`每日任務完成：${q.name}`);}});}
@@ -324,22 +375,18 @@
     renderWorldDashboard();
     $('contractList').innerHTML = state.contracts.map(c => `
       <article class="contract" style="--accent:${c.accent}">
-        <div class="contract-top"><span>${c.zone} · ${state.facilities.scouts>=1?`威脅 ${c.threat ?? state.regions[c.zone]?.threat}%`:threatLabel(c.threat ?? state.regions[c.zone]?.threat)}</span><b class="risk">${c.crisis?'危機 ':''}${'◆'.repeat(c.risk)}${'◇'.repeat(Math.max(0,3-c.risk))}</b></div>
+        <div class="contract-top"><span>${c.zone} · 威脅 ${c.threat ?? state.regions[c.zone]?.threat}%</span><b class="risk">${c.crisis?'危機 ':''}${'◆'.repeat(c.risk)}${'◇'.repeat(Math.max(0,3-c.risk))}</b></div>
         <h3>${c.title}</h3><p>${c.desc}</p>
         <div class="contract-reward"><div class="reward-numbers"><b>${c.gold}</b> 金幣<br><b>${c.renown}</b> 聲望 · ${c.nodes} 節點</div><button class="action-btn" data-contract="${c.id}">接受</button></div>
       </article>`).join('');
     document.querySelectorAll('[data-contract]').forEach(btn => btn.addEventListener('click', () => startExpedition(btn.dataset.contract)));
     $('roster').innerHTML = state.heroes.filter(h=>h.owned).map(h => {
-      const max = scaledHero(h).maxHp;
+      const scaled=scaledHero(h),max=scaled.maxHp;
       const spec=specInfo(h);
       const active=state.activeParty.includes(h.id); const equipped=Object.values(h.equipment||{}).filter(Boolean).length;
-      return `<article class="hero-card ${active?'selected':''} ${h.injury?'injured':''}" style="--accent:${h.color}"><div class="portrait">${h.icon}</div><div class="hero-meta"><div><h3>${h.name}</h3><small>${h.job}${spec?` · ${spec.name}`:''}</small></div><b>Lv.${h.level}</b></div>${h.injury?`<div class="injury-tag">${h.injury.name} · ${h.injury.desc} · ${h.injury.days} 日</div>`:''}<div class="stats"><span>生命 ${max}</span><span>威力 ${scaledHero(h).power}</span><span>能力結晶 ${state.materials.growthCrystal}</span></div><div class="hero-actions"><button data-party="${h.id}">${active?'移出隊伍':'編入隊伍'}</button><button data-gear="${h.id}">裝備 ${equipped}/3</button><button data-training="${h.id}">技能</button><button data-attributes="${h.id}">能力</button></div>${!spec&&h.level>=3?`<button class="spec-ready" data-specialize="${h.id}">選擇專精</button>`:''}</article>`;
+      return `<article class="hero-card ${active?'selected':''} ${h.injury?'injured':''}" style="--accent:${h.color}"><div class="portrait"><img src="${portraitPath(h.id,'small')}" alt="${h.name}整身立繪" loading="lazy"></div><div class="hero-meta"><div><h3>${h.name}</h3><small>${h.job}${spec?` · ${spec.name}`:''}</small></div><b>Lv.${h.level}</b></div>${h.injury?`<div class="injury-tag">${h.injury.name} · ${h.injury.days} 日</div>`:''}<div class="stats"><span>生命 ${max}</span><span>物理 ${scaled.physicalPower}</span><span>魔法 ${scaled.magicPower}</span></div><button class="hero-detail-btn" data-hero-panel="${h.id}">查看完整角色面板</button></article>`;
     }).join('')+state.heroes.filter(h=>!h.owned).map(h=>`<article class="hero-card locked-hero" style="--accent:${h.color}"><div class="portrait">?</div><h3>${h.name} · ${h.job}</h3><small>公會聲望達到 ${joinThresholds[h.id]} 時加入</small><div class="rank-progress"><i style="width:${Math.min(100,state.renown/joinThresholds[h.id]*100)}%"></i></div></article>`).join('');
-    document.querySelectorAll('[data-specialize]').forEach(b=>b.addEventListener('click',()=>openSpecialization(b.dataset.specialize)));
-    document.querySelectorAll('[data-party]').forEach(b=>b.addEventListener('click',()=>toggleParty(b.dataset.party)));
-    document.querySelectorAll('[data-gear]').forEach(b=>b.addEventListener('click',()=>openEquipment(b.dataset.gear)));
-    document.querySelectorAll('[data-training]').forEach(b=>b.addEventListener('click',()=>openTraining(b.dataset.training)));
-    document.querySelectorAll('[data-attributes]').forEach(b=>b.addEventListener('click',()=>openAttributes(b.dataset.attributes)));
+    document.querySelectorAll('[data-hero-panel]').forEach(b=>b.addEventListener('click',()=>openHeroPanel(b.dataset.heroPanel)));
     renderShop();
   }
 
@@ -348,36 +395,61 @@
   function renderWorldDashboard(){
     const season=currentSeason();const d=directiveDefs.find(x=>x.id===state.directive.id);const left=Math.max(0,state.directive.expires-state.day+1);
     const daily=state.daily.tasks.map(t=>{const q=dailyQuestDefs.find(x=>x.id===t.id);return `<div class="daily-task ${t.claimed?'done':''}"><b>${t.claimed?'✓ ':''}${q.name}</b><span>${q.desc} · ${rewardText(q.reward)}</span><em>${t.progress}/${q.target}</em></div>`;}).join('');
-    $('worldDashboard').innerHTML=`<article class="season-card"><span class="dashboard-symbol">${season.symbol}</span><div><small>第 ${Math.floor((state.day-1)/7)+1} 季 · ${7-(state.day-1)%7} 日後輪替</small><h3>${season.name}</h3><p>${season.desc}</p></div></article><article class="directive-card"><small>公會方針 · 剩餘 ${left} 日</small><h3>${d.name}</h3><p>${d.desc}</p><div class="directive-progress"><i style="width:${state.directive.progress/d.target*100}%"></i></div><b>${state.directive.progress}/${d.target}${state.directive.claimed?' · 已完成':` · 獎勵 ${d.gold} G / ${d.renown} 聲望`}</b></article><article class="daily-card"><small>DAILY ORDERS · 每日更新</small><h3>今日任務</h3>${daily}</article><div class="region-grid">${contractSeeds.map(c=>{const r=state.regions[c.zone];return `<article class="region-state ${r.threat>=75?'crisis':''}"><span>${threatLabel(r.threat)}</span><b>${c.zone}</b><small>${state.facilities.scouts>=1?`威脅 ${r.threat}% · `:''}平定 ${r.cleared} 次</small><div><i style="width:${state.facilities.scouts>=1?r.threat:(Math.ceil(r.threat/25)*25)}%"></i></div></article>`;}).join('')}</div>`;
+    $('worldDashboard').innerHTML=`<article class="season-card"><span class="dashboard-symbol">${season.symbol}</span><div><small>第 ${Math.floor((state.day-1)/7)+1} 季 · ${7-(state.day-1)%7} 日後輪替</small><h3>${season.name}</h3><p>${season.desc}</p></div></article><article class="directive-card"><small>公會方針 · 剩餘 ${left} 日</small><h3>${d.name}</h3><p>${d.desc}</p><div class="directive-progress"><i style="width:${state.directive.progress/d.target*100}%"></i></div><b>${state.directive.progress}/${d.target}${state.directive.claimed?' · 已完成':` · 獎勵 ${d.gold} G / ${d.renown} 聲望`}</b></article><article class="daily-card"><small>DAILY ORDERS · 每日更新</small><h3>今日任務</h3>${daily}</article><div class="region-grid">${contractSeeds.map(c=>{const r=state.regions[c.zone];return `<article class="region-state ${r.threat>=75?'crisis':''}"><span>${threatLabel(r.threat)}</span><b>${c.zone}</b><small>威脅 ${r.threat}% · 平定 ${r.cleared} 次</small><div><i style="width:${r.threat}%"></i></div></article>`;}).join('')}</div>`;
   }
 
+  function ensureMarketStock(){if(state.shopStock.length)return;const available=marketCatalog.filter(i=>(i.need||0)<=state.renown&&!(i.type==='treatment'&&!state.heroes.some(h=>h.injury)));state.shopStock=[...available].sort(()=>Math.random()-.5).slice(0,5).map((i,n)=>({id:`${state.day}-${state.marketRefreshes}-${n}-${i.id}`,itemId:i.id,sold:false}));}
+  function marketRefreshCost(){return 25+state.marketRefreshes*15;}
   function renderShop() {
-    $('shop').innerHTML = `<span class="shop-label">裝備抽取</span><div class="forge-banner"><b>灰燼軍械箱</b><span>依聲望解鎖稀有度；十連必定至少一件稀有裝備。</span><div><button class="action-btn" data-draw="1" ${state.gold<45?'disabled':''}>抽取 1 次 · 45 G</button><button class="action-btn" data-draw="10" ${state.gold<400?'disabled':''}>抽取 10 次 · 400 G</button></div></div><span class="shop-label">鐵匠鋪</span><div class="workshop-links"><button data-open-forge="craft">製作裝備</button><button data-open-forge="upgrade">強化裝備</button><button data-open-forge="dismantle">分解裝備</button><button data-open-bag>查看背包</button></div><span class="shop-label">公會建設</span>${Object.entries(facilityDefs).map(([id,f])=>{const lv=state.facilities[id];const cost=95+lv*75;return `<div class="shop-item"><b>${f.name} Lv.${lv}</b><span>${lv>=3?'已完成建設':f.desc[lv]}</span><button data-facility="${id}" data-cost="${cost}" ${lv>=3||state.gold<cost?'disabled':''}>${lv>=3?'MAX':cost+' G'}</button></div>`;}).join('')}`;
-    document.querySelectorAll('[data-draw]').forEach(b=>b.addEventListener('click',()=>drawEquipment(+b.dataset.draw)));
+    ensureMarketStock();
+    const market=state.shopStock.map(s=>{const item=marketCatalog.find(i=>i.id===s.itemId),unusable=item?.type==='supply'&&state.supplies>=5;return item?`<article class="market-item ${s.sold?'sold':''}"><div><b>${item.name}</b><span>${unusable?'補給已達上限':item.desc}</span></div><button data-market-buy="${s.id}" ${s.sold||unusable||state.gold<item.price?'disabled':''}>${s.sold?'售罄':item.price+' G'}</button></article>`:'';}).join('');
+    $('shop').innerHTML = `<span class="shop-label">鐵匠鋪</span><div class="workshop-links"><button data-open-forge="shop">武器商店</button><button data-open-forge="craft">製作裝備</button><button data-open-forge="upgrade">強化裝備</button><button data-open-forge="dismantle">分解裝備</button><button data-open-bag>查看背包</button></div><span class="shop-label">每日市場</span><div class="market-head"><small>每日自動刷新；商品購買後售罄</small><button data-market-refresh ${state.gold<marketRefreshCost()?'disabled':''}>刷新 ${marketRefreshCost()} G</button></div><div class="market-list">${market}</div><span class="shop-label">聲望里程碑</span><div class="renown-perks">${renownPerks.map(p=>`<article class="renown-perk ${state.renown>=p.need?'unlocked':''}"><b>${state.renown>=p.need?'✓':'◇'} ${p.need} 聲望 · ${p.name}</b><span>${p.desc}</span></article>`).join('')}</div>`;
     document.querySelectorAll('[data-open-forge]').forEach(b=>b.addEventListener('click',()=>openForge(b.dataset.openForge)));
     document.querySelectorAll('[data-open-bag]').forEach(b=>b.addEventListener('click',openBag));
-    document.querySelectorAll('[data-facility]').forEach(b=>b.addEventListener('click',()=>upgradeFacility(b.dataset.facility,+b.dataset.cost)));
+    document.querySelectorAll('[data-market-buy]').forEach(b=>b.addEventListener('click',()=>buyMarketItem(b.dataset.marketBuy)));
+    document.querySelectorAll('[data-market-refresh]').forEach(b=>b.addEventListener('click',refreshMarket));
   }
 
+  function buyMarketItem(stockId){const stock=state.shopStock.find(s=>s.id===stockId&&!s.sold),item=stock&&marketCatalog.find(i=>i.id===stock.itemId);if(!item||state.gold<item.price)return;state.gold-=item.price;if(item.type==='material')state.materials[item.key]+=item.amount;if(item.type==='supply')state.supplies=clamp(state.supplies+item.amount,0,5);if(item.type==='treatment'){const hero=state.heroes.find(h=>h.injury);if(!hero){state.gold+=item.price;return toast('目前沒有人需要治療');}hero.injury=null;}stock.sold=true;save();renderGuild();tone(620,.1);toast(`購得：${item.name}`);}
+  function refreshMarket(){const cost=marketRefreshCost();if(state.gold<cost)return toast('金幣不足');state.gold-=cost;state.marketRefreshes++;state.shopStock=[];ensureMarketStock();save();renderGuild();tone(500,.1);toast('市場商品已刷新');}
+
   function slotName(slot){return {weapon:'武器',armor:'護甲',charm:'飾品'}[slot]||slot;}
+  function portraitPath(heroId,variant='avatar'){return `assets/characters/${heroId}/${variant}.webp`;}
   function rarityName(item){return rarityInfo[item.rarity||'common'].name;}
   function heroTraits(hero){return Object.values(hero.equipment||{}).map(id=>equipment.find(i=>i.id===id)?.trait).filter(Boolean);}
   function hasTrait(hero,trait){return heroTraits(hero).includes(trait);}
 
-  function upgradeFacility(id,cost){if(!facilityDefs[id]||state.gold<cost||state.facilities[id]>=3)return;state.gold-=cost;state.facilities[id]++;state.shopStock=[];addChronicle(`${facilityDefs[id].name}升至 Lv.${state.facilities[id]}。`);save();renderGuild();tone(680,.12);toast(`${facilityDefs[id].name}完成擴建`);}
 
-  function drawEquipment(count){const cost=count===10?400:45;if(state.gold<cost)return;state.gold-=cost;const results=[];for(let n=0;n<count;n++){const roll=Math.random();let rarity=(count===10&&n===count-1&&results.every(x=>x.rarity==='common'))?'rare':roll<Math.min(.08,state.renown/4000)?'epic':roll<.3?'rare':'common';if(rarity==='epic'&&state.renown<120)rarity='rare';let pool=equipment.filter(i=>i.rarity===rarity);const item=pick(pool.length?pool:equipment.filter(i=>i.rarity==='common'));state.inventory.push(item.id);discover('equipment',item.id);results.push(item);}save();renderGuild();tone(780,.16);$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='軍械箱開啟結果';$('modalBody').innerHTML=`<div class="draw-results">${results.map(i=>`<article class="inventory-item rarity-${i.rarity}"><b>${i.name}</b><span>${rarityName(i)} · ${slotName(i.slot)}</span></article>`).join('')}</div>`;}
   function inventoryCounts(){return state.inventory.reduce((m,id)=>(m[id]=(m[id]||0)+1,m),{});}
   function materialGroupHtml(group,title){return `<span class="eyebrow material-heading">${title}</span><div class="material-grid">${Object.entries(materialDefs).filter(([,m])=>m.group===group).map(([id,m])=>`<article><i>${m.symbol}</i><b>${m.name}</b><strong>${state.materials[id]}</strong><small>${m.desc}</small></article>`).join('')}</div>`;}
-  function openBag(){const counts=inventoryCounts();$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='公會背包';$('modalBody').innerHTML=`${materialGroupHtml('gear','EQUIPMENT MATERIALS · 裝備素材')}${materialGroupHtml('skill','SKILL MATERIALS · 技能素材')}${materialGroupHtml('ability','ABILITY MATERIALS · 能力素材')}<span class="eyebrow material-heading">EQUIPMENT</span><div class="inventory-list">${Object.entries(counts).map(([id,n])=>{const i=equipment.find(x=>x.id===id);return `<article class="inventory-item rarity-${i.rarity}"><b>${i.name} ${state.gearLevels[id]?`+${state.gearLevels[id]}`:''}</b><span>${rarityName(i)} · ${slotName(i.slot)} · 持有 ${n}</span></article>`;}).join('')||'<p class="empty-note">背包內沒有未裝備的裝備</p>'}</div>`;}
+  function openBag(){const counts=inventoryCounts();$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='公會背包';$('modalBody').innerHTML=`<div class="material-inline">遠征補給 <b>${state.supplies}/5</b>　可在特殊事件中換取優勢</div>${materialGroupHtml('gear','EQUIPMENT MATERIALS · 裝備素材')}${materialGroupHtml('skill','SKILL MATERIALS · 技能素材')}${materialGroupHtml('ability','ABILITY MATERIALS · 能力素材')}<span class="eyebrow material-heading">EQUIPMENT</span><div class="inventory-list">${Object.entries(counts).map(([id,n])=>{const i=equipment.find(x=>x.id===id);return `<article class="inventory-item rarity-${i.rarity}"><b>${i.name} ${state.gearLevels[id]?`+${state.gearLevels[id]}`:''}</b><span>${rarityName(i)} · ${slotName(i.slot)} · 持有 ${n}</span></article>`;}).join('')||'<p class="empty-note">背包內沒有未裝備的裝備</p>'}</div>`;}
   function craftCost(item){const rare=item.rarity==='rare',epic=item.rarity==='epic';return item.slot==='weapon'?{scrap:epic?18:rare?10:6,essence:epic?8:rare?3:0,bossCore:epic?1:0}:item.slot==='armor'?{cloth:epic?18:rare?10:6,essence:epic?7:rare?3:0,bossCore:epic?1:0}:{scrap:epic?7:rare?4:2,cloth:epic?7:rare?4:2,essence:epic?12:rare?6:3,bossCore:epic?1:0};}
   function canPayMaterials(cost){return Object.entries(cost).every(([id,n])=>(state.materials[id]||0)>=n);}
   function payMaterials(cost){Object.entries(cost).forEach(([id,n])=>state.materials[id]-=n);}
   function costText(cost){return Object.entries(cost).filter(([,n])=>n).map(([id,n])=>`${materialDefs[id].name}×${n}`).join('、');}
-  function openForge(mode='craft'){const counts=inventoryCounts();const allowed=equipment.filter(i=>i.rarity==='common'||i.rarity==='rare'&&state.facilities.forgehouse>=1||i.rarity==='epic'&&state.facilities.forgehouse>=3);let body='';if(mode==='craft')body=allowed.map(i=>{const c=craftCost(i);return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name}</b><span>${rarityName(i)} · ${slotName(i.slot)} · ${i.desc}</span><small>${costText(c)}</small></div><button data-craft="${i.id}" ${canPayMaterials(c)?'':'disabled'}>製作</button></div>`;}).join('');if(mode==='upgrade')body=Object.keys(counts).map(id=>{const i=equipment.find(x=>x.id===id),lv=state.gearLevels[id]||0,c={scrap:5+lv*4,essence:i.rarity==='common'?0:2+lv,bossCore:i.rarity==='epic'&&lv>=2?1:0};return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name} +${lv}</b><span>每級提高裝備基礎性能，最高 +5</span><small>${costText(c)}</small></div><button data-upgrade-gear="${id}" ${lv>=5||!canPayMaterials(c)?'disabled':''}>${lv>=5?'MAX':'強化'}</button></div>`;}).join('')||'<p class="empty-note">背包中沒有可強化裝備</p>';if(mode==='dismantle')body=Object.entries(counts).map(([id,n])=>{const i=equipment.find(x=>x.id===id),base=i.rarity==='epic'?8:i.rarity==='rare'?4:2,bonus=1+(state.facilities.forgehouse>=2?.25:0);return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name}</b><span>持有 ${n} · 分解獲得鐵屑 ${Math.floor(base*bonus)}${i.rarity!=='common'?'、灰燼精華 '+Math.max(1,Math.floor(base/2*bonus)):''}</span></div><button data-dismantle="${id}">分解 1 件</button></div>`;}).join('')||'<p class="empty-note">背包中沒有可分解裝備</p>';$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='鐵匠鋪';$('modalBody').innerHTML=`<div class="forge-tabs"><button data-forge-tab="craft" class="${mode==='craft'?'active':''}">製作</button><button data-forge-tab="upgrade" class="${mode==='upgrade'?'active':''}">強化</button><button data-forge-tab="dismantle" class="${mode==='dismantle'?'active':''}">分解</button></div><div class="forge-list">${body}</div>`;document.querySelectorAll('[data-forge-tab]').forEach(b=>b.addEventListener('click',()=>openForge(b.dataset.forgeTab)));document.querySelectorAll('[data-craft]').forEach(b=>b.addEventListener('click',()=>craftGear(b.dataset.craft)));document.querySelectorAll('[data-upgrade-gear]').forEach(b=>b.addEventListener('click',()=>upgradeGear(b.dataset.upgradeGear)));document.querySelectorAll('[data-dismantle]').forEach(b=>b.addEventListener('click',()=>dismantleGear(b.dataset.dismantle)));}
-  function craftGear(id){const item=equipment.find(i=>i.id===id),cost=item&&craftCost(item);if(!item||!canPayMaterials(cost))return;payMaterials(cost);state.inventory.push(id);discover('equipment',id);progressDaily('craft');save();openForge('craft');renderGuild();tone(690,.12);toast(`製作完成：${item.name}`);}
+  function openForge(mode='craft'){
+    const counts=inventoryCounts();
+    const allowed=equipment.filter(i=>i.rarity==='common'||i.rarity==='rare'&&hasRenownPerk('rareCraft')||i.rarity==='epic'&&hasRenownPerk('epicCraft'));
+    let body='';
+    if(mode==='shop')body=allowed.map(i=>{const price={common:70,rare:190,epic:460}[i.rarity];return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name}</b><span>${rarityName(i)} · ${slotName(i.slot)} · ${i.desc}</span><small>直接購買，不消耗素材</small></div><button data-buy-gear="${i.id}" data-price="${price}" ${state.gold<price?'disabled':''}>${price} G</button></div>`;}).join('');
+    if(mode==='craft')body=allowed.map(i=>{const c=craftCost(i);return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name}</b><span>${rarityName(i)} · ${slotName(i.slot)} · ${i.desc}</span><small>${costText(c)}</small></div><button data-craft="${i.id}" ${canPayMaterials(c)?'':'disabled'}>製作</button></div>`;}).join('');
+    if(mode==='upgrade')body=Object.keys(counts).map(id=>{const i=equipment.find(x=>x.id===id),lv=state.gearLevels[id]||0,c={scrap:5+lv*4,essence:i.rarity==='common'?0:2+lv,bossCore:i.rarity==='epic'&&lv>=2?1:0};return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name} +${lv}</b><span>每級提高裝備基礎性能，最高 +5</span><small>${costText(c)}</small></div><button data-upgrade-gear="${id}" ${lv>=5||!canPayMaterials(c)?'disabled':''}>${lv>=5?'MAX':'強化'}</button></div>`;}).join('')||'<p class="empty-note">背包中沒有可強化裝備</p>';
+    if(mode==='reroll')body=Object.keys(counts).map(id=>{const i=equipment.find(x=>x.id===id),a=gearAffix(id),can=state.gold>=45&&state.materials.essence>=2;return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name}</b><span>目前詞綴「${a.name}」：${a.desc}</span><small>重鑄需 45 G、${materialDefs.essence.name}×2</small></div><button data-reroll-gear="${id}" ${can?'':'disabled'}>重鑄</button></div>`;}).join('')||'<p class="empty-note">背包中沒有可重鑄裝備</p>';
+    if(mode==='dismantle')body=Object.entries(counts).map(([id,n])=>{const i=equipment.find(x=>x.id===id),base=i.rarity==='epic'?8:i.rarity==='rare'?4:2,bonus=hasRenownPerk('salvage')?1.25:1;return `<div class="forge-row rarity-${i.rarity}"><div><b>${i.name}</b><span>持有 ${n} · 分解獲得鐵屑 ${Math.floor(base*bonus)}${i.rarity!=='common'?'、灰燼精華 '+Math.max(1,Math.floor(base/2*bonus)):''}</span></div><button data-dismantle="${id}">分解 1 件</button></div>`;}).join('')||'<p class="empty-note">背包中沒有可分解裝備</p>';
+    $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='鐵匠鋪';
+    $('modalBody').innerHTML=`<div class="forge-tabs"><button data-forge-tab="shop" class="${mode==='shop'?'active':''}">商店</button><button data-forge-tab="craft" class="${mode==='craft'?'active':''}">製作</button><button data-forge-tab="upgrade" class="${mode==='upgrade'?'active':''}">強化</button><button data-forge-tab="reroll" class="${mode==='reroll'?'active':''}">重鑄</button><button data-forge-tab="dismantle" class="${mode==='dismantle'?'active':''}">分解</button></div><div class="forge-list">${body}</div>`;
+    document.querySelectorAll('[data-forge-tab]').forEach(b=>b.addEventListener('click',()=>openForge(b.dataset.forgeTab)));
+    document.querySelectorAll('[data-buy-gear]').forEach(b=>b.addEventListener('click',()=>buyGear(b.dataset.buyGear,+b.dataset.price)));
+    document.querySelectorAll('[data-craft]').forEach(b=>b.addEventListener('click',()=>craftGear(b.dataset.craft)));
+    document.querySelectorAll('[data-upgrade-gear]').forEach(b=>b.addEventListener('click',()=>upgradeGear(b.dataset.upgradeGear)));
+    document.querySelectorAll('[data-reroll-gear]').forEach(b=>b.addEventListener('click',()=>rerollGear(b.dataset.rerollGear)));
+    document.querySelectorAll('[data-dismantle]').forEach(b=>b.addEventListener('click',()=>dismantleGear(b.dataset.dismantle)));
+  }
+  function buyGear(id,price){const item=equipment.find(i=>i.id===id);if(!item||state.gold<price)return;state.gold-=price;state.inventory.push(id);ensureGearAffix(id);discover('equipment',id);save();openForge('shop');renderGuild();tone(700,.1);toast(`購得裝備：${item.name}`);}
+  function craftGear(id){const item=equipment.find(i=>i.id===id),cost=item&&craftCost(item);if(!item||!canPayMaterials(cost))return;payMaterials(cost);state.inventory.push(id);ensureGearAffix(id);discover('equipment',id);progressDaily('craft');save();openForge('craft');renderGuild();tone(690,.12);toast(`製作完成：${item.name}`);}
   function upgradeGear(id){const item=equipment.find(i=>i.id===id),lv=state.gearLevels[id]||0;if(!item||lv>=5)return;const cost={scrap:5+lv*4,essence:item.rarity==='common'?0:2+lv,bossCore:item.rarity==='epic'&&lv>=2?1:0};if(!canPayMaterials(cost))return;payMaterials(cost);state.gearLevels[id]=lv+1;progressDaily('craft');save();openForge('upgrade');renderGuild();tone(760,.14);}
-  function dismantleGear(id){const index=state.inventory.indexOf(id),item=equipment.find(i=>i.id===id);if(index<0||!item)return;state.inventory.splice(index,1);const base=item.rarity==='epic'?8:item.rarity==='rare'?4:2,bonus=1+(state.facilities.forgehouse>=2?.25:0);state.materials.scrap+=Math.floor(base*bonus);if(item.rarity!=='common')state.materials.essence+=Math.max(1,Math.floor(base/2*bonus));progressDaily('dismantle');save();openForge('dismantle');renderGuild();tone(320,.1);}
+  function rerollGear(id){const current=gearAffix(id);if(!state.inventory.includes(id)||state.gold<45||state.materials.essence<2)return;state.gold-=45;state.materials.essence-=2;state.gearAffixes[id]=pick(gearAffixDefs.filter(a=>a.id!==current.id)).id;save();openForge('reroll');renderGuild();tone(580,.14);toast('裝備詞綴已重鑄');}
+  function dismantleGear(id){const index=state.inventory.indexOf(id),item=equipment.find(i=>i.id===id);if(index<0||!item)return;state.inventory.splice(index,1);const base=item.rarity==='epic'?8:item.rarity==='rare'?4:2,bonus=hasRenownPerk('salvage')?1.25:1;state.materials.scrap+=Math.floor(base*bonus);if(item.rarity!=='common')state.materials.essence+=Math.max(1,Math.floor(base/2*bonus));progressDaily('dismantle');save();openForge('dismantle');renderGuild();tone(320,.1);}
 
   function toggleParty(id){
     if(state.activeParty.includes(id)){if(state.activeParty.length<=1)return toast('隊伍至少保留一人');state.activeParty=state.activeParty.filter(x=>x!==id);}
@@ -385,20 +457,54 @@
     save();renderGuild();
   }
 
-  function openParty(){const owned=state.heroes.filter(h=>h.owned);$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='遠征隊伍與出戰順序';$('modalBody').innerHTML=`<p>第 1 位會最先行動。每名角色完成行動後依序輪替。</p><div class="party-order">${state.activeParty.map((id,index)=>{const h=state.heroes.find(x=>x.id===id);return `<article><b>${index+1}</b><span style="--accent:${h.color}">${h.icon}</span><div><strong>${h.name}</strong><small>${h.job}</small></div><button data-party-up="${id}" ${index===0?'disabled':''}>↑</button><button data-party-down="${id}" ${index===state.activeParty.length-1?'disabled':''}>↓</button><button data-party-remove="${id}">移出</button></article>`;}).join('')}</div><span class="eyebrow">AVAILABLE</span><div class="party-bench">${owned.filter(h=>!state.activeParty.includes(h.id)).map(h=>`<button data-party-add="${h.id}" ${state.activeParty.length>=3?'disabled':''}>${h.name} · ${h.job}</button>`).join('')||'<small>所有成員都已編入隊伍</small>'}</div>`;document.querySelectorAll('[data-party-up]').forEach(b=>b.addEventListener('click',()=>moveParty(b.dataset.partyUp,-1)));document.querySelectorAll('[data-party-down]').forEach(b=>b.addEventListener('click',()=>moveParty(b.dataset.partyDown,1)));document.querySelectorAll('[data-party-remove]').forEach(b=>b.addEventListener('click',()=>{toggleParty(b.dataset.partyRemove);openParty();}));document.querySelectorAll('[data-party-add]').forEach(b=>b.addEventListener('click',()=>{toggleParty(b.dataset.partyAdd);openParty();}));}
+  function openParty(){const owned=state.heroes.filter(h=>h.owned);$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='遠征隊伍與出戰順序';$('modalBody').innerHTML=`<p>第 1 位會最先行動。每名角色完成行動後依序輪替。</p><div class="party-order">${state.activeParty.map((id,index)=>{const h=state.heroes.find(x=>x.id===id);return `<article><b>${index+1}</b><span class="party-portrait" style="--accent:${h.color}"><img src="${portraitPath(h.id)}" alt="${h.name}頭像"></span><div><strong>${h.name}</strong><small>${h.job}</small></div><button data-party-up="${id}" ${index===0?'disabled':''}>↑</button><button data-party-down="${id}" ${index===state.activeParty.length-1?'disabled':''}>↓</button><button data-party-remove="${id}">移出</button></article>`;}).join('')}</div><span class="eyebrow">AVAILABLE</span><div class="party-bench">${owned.filter(h=>!state.activeParty.includes(h.id)).map(h=>`<button data-party-add="${h.id}" ${state.activeParty.length>=3?'disabled':''}><img src="${portraitPath(h.id)}" alt="">${h.name} · ${h.job}</button>`).join('')||'<small>所有成員都已編入隊伍</small>'}</div>`;document.querySelectorAll('[data-party-up]').forEach(b=>b.addEventListener('click',()=>moveParty(b.dataset.partyUp,-1)));document.querySelectorAll('[data-party-down]').forEach(b=>b.addEventListener('click',()=>moveParty(b.dataset.partyDown,1)));document.querySelectorAll('[data-party-remove]').forEach(b=>b.addEventListener('click',()=>{toggleParty(b.dataset.partyRemove);openParty();}));document.querySelectorAll('[data-party-add]').forEach(b=>b.addEventListener('click',()=>{toggleParty(b.dataset.partyAdd);openParty();}));}
   function moveParty(id,dir){const i=state.activeParty.indexOf(id),j=i+dir;if(i<0||j<0||j>=state.activeParty.length)return;[state.activeParty[i],state.activeParty[j]]=[state.activeParty[j],state.activeParty[i]];save();openParty();renderGuild();tone(520);}
 
-  function openAttributes(heroId){const h=state.heroes.find(x=>x.id===heroId);if(!h)return;const attrs=[['vitality','體魄','每點生命 +6'],['might','力量','每點威力 +2'],['focus','專注','每 3 點技能點上限 +1']];$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 能力培養`;$('modalBody').innerHTML=`<p>能力結晶：<b>${state.materials.growthCrystal}</b>。每次提升消耗 1 枚，與裝備及技能素材完全分開。</p><div class="attribute-list">${attrs.map(([id,name,desc])=>`<article><div><b>${name}</b><span>${desc}</span></div><strong>${h.attributes[id]||0}</strong><button data-add-attribute="${id}" ${state.materials.growthCrystal<=0?'disabled':''}>＋</button></article>`).join('')}</div>`;document.querySelectorAll('[data-add-attribute]').forEach(b=>b.addEventListener('click',()=>addAttribute(heroId,b.dataset.addAttribute)));}
-  function addAttribute(heroId,id){const h=state.heroes.find(x=>x.id===heroId);if(!h||!['vitality','might','focus'].includes(id)||state.materials.growthCrystal<=0)return;state.materials.growthCrystal--;h.attributes[id]=(h.attributes[id]||0)+1;save();openAttributes(heroId);renderGuild();tone(660);}
+  function openHeroPanel(heroId){
+    const h=state.heroes.find(x=>x.id===heroId&&x.owned);if(!h)return;const scaled=scaledHero(h),spec=specInfo(h),active=state.activeParty.includes(h.id);
+    const gear=['weapon','armor','charm'].map(slot=>{const item=equipment.find(i=>i.id===h.equipment?.[slot]),affix=item&&gearAffix(item.id);return `<article class="panel-gear ${item?`rarity-${item.rarity}`:''}"><small>${slotName(slot)}</small><b>${item?.name||'未裝備'}</b><span>${item?`${item.desc}<br>詞綴「${affix.name}」：${affix.desc}${item.set?`<br>套裝：${setBonusText(item.set)}`:''}`:'此欄位目前空白'}</span></article>`;}).join('');
+    const skills=h.skills.map(base=>{const skill=trainedSkill(h,base),equipped=(h.activeSkills||[]).includes(base.id);return `<article class="panel-skill ${equipped?'equipped':''}"><div><b>${base.name}</b><em>${equipped?'已配置':'未配置'} · ${skill.damageType==='magic'?'魔法':skill.damage?'物理':'輔助'} · 強化 ${skill.rank}/2</em></div><span>${skillDetailText(h,skill)}</span></article>`;}).join('');
+    const bonds=state.heroes.filter(x=>x.owned&&x.id!==h.id).map(x=>{const count=state.bonds[bondKey(h.id,x.id)]||0,lv=bondLevel(h.id,x.id);return `<article class="bond-entry"><b>${h.name} × ${x.name}</b><span>默契 ${count} · ${lv===2?'深厚羈絆':lv===1?'建立羈絆':'尚未建立'}</span><small>${lv===2?(bondSpecials[bondKey(h.id,x.id)]||'雙方生命 +3、雙威力 +1'):(lv===1?'同隊時雙方生命 +3':'共同完成 3 次遠征後生效')}</small></article>`;}).join('');
+    $('modal').classList.add('open','hero-panel-modal');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 完整角色面板`;
+    $('modalBody').innerHTML=`<section class="character-overview"><div class="character-mark" style="color:${h.color}">${h.icon}</div><div><span class="eyebrow">${h.job} · Lv.${h.level}</span><h3>${spec?.name||'尚未選擇專精'}</h3><p>${spec?.desc|| (h.level>=3?'已可選擇職業專精':'角色達到 Lv.3 後可選擇專精')}</p>${h.injury?`<div class="injury-tag">${h.injury.name} · ${h.injury.desc} · ${h.injury.days} 日</div>`:''}</div></section><section class="character-stat-grid"><article><small>生命</small><b>${scaled.maxHp}</b></article><article><small>技能點</small><b>${scaled.maxSp}</b></article><article><small>物理威力</small><b>${scaled.physicalPower}</b></article><article><small>魔法威力</small><b>${scaled.magicPower}</b></article><article><small>經驗</small><b>${h.xp}/${h.level*45}</b></article><article><small>能力結晶</small><b>${state.materials.growthCrystal}</b></article></section><section class="character-attributes"><span>體魄 <b>${h.attributes.vitality||0}</b></span><span>力量 <b>${h.attributes.might||0}</b></span><span>魔力 <b>${h.attributes.magic||0}</b></span><span>專注 <b>${h.attributes.focus||0}</b></span></section><div class="character-actions"><button data-panel-party>${active?'移出隊伍':'編入隊伍'}</button><button data-panel-gear>管理裝備</button><button data-panel-skills>配置／強化技能</button><button data-panel-attributes>分配能力</button>${!spec&&h.level>=3?'<button data-panel-spec>選擇專精</button>':''}</div><span class="eyebrow panel-heading">EQUIPMENT</span><div class="panel-gear-grid">${gear}</div><span class="eyebrow panel-heading">ULTIMATE</span><article class="panel-ultimate"><b>✦ ${h.ultimate.name}</b><span>${skillDetailText(h,h.ultimate)}</span></article><span class="eyebrow panel-heading">ALL SKILLS</span><div class="panel-skill-grid">${skills}</div>`;
+    const characterMark=document.querySelector('.character-mark');if(characterMark){characterMark.classList.add('has-art');characterMark.innerHTML=`<img src="${portraitPath(h.id,'half')}" alt="${h.name}半身立繪">`;}
+    document.querySelector('.character-actions')?.insertAdjacentHTML('beforeend',`<button data-panel-talents>天賦樹 (${talentPoints(h)} 點)</button>${h.level>=breakthroughCap(h)&&h.breakthrough<2?'<button data-panel-breakthrough>角色突破</button>':''}`);
+    $('modalBody').insertAdjacentHTML('beforeend',`<span class="eyebrow panel-heading">BONDS · 羈絆</span><div class="bond-grid">${bonds||'<p class="empty-note">尚無其他成員</p>'}</div><div class="breakthrough-status">突破階段 <b>${h.breakthrough||0}/2</b> · 等級上限 <b>Lv.${breakthroughCap(h)}</b></div>`);
+    document.querySelector('[data-panel-party]')?.addEventListener('click',()=>{toggleParty(h.id);openHeroPanel(h.id);});
+    document.querySelector('[data-panel-gear]')?.addEventListener('click',()=>openEquipment(h.id));
+    document.querySelector('[data-panel-skills]')?.addEventListener('click',()=>openTraining(h.id));
+    document.querySelector('[data-panel-attributes]')?.addEventListener('click',()=>openAttributes(h.id));
+    document.querySelector('[data-panel-talents]')?.addEventListener('click',()=>openTalents(h.id));
+    document.querySelector('[data-panel-breakthrough]')?.addEventListener('click',()=>openBreakthrough(h.id));
+    document.querySelector('[data-panel-spec]')?.addEventListener('click',()=>openSpecialization(h.id));
+  }
+
+  function openAttributes(heroId){const h=state.heroes.find(x=>x.id===heroId);if(!h)return;const attrs=[['vitality','體魄','每點生命 +6'],['might','力量','每點物理威力 +2'],['magic','魔力','每點魔法威力 +2'],['focus','專注','每 3 點技能點上限 +1']];$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 能力培養`;$('modalBody').innerHTML=`<p>能力結晶：<b>${state.materials.growthCrystal}</b>。每次提升消耗 1 枚，與裝備及技能素材完全分開。</p><div class="attribute-list">${attrs.map(([id,name,desc])=>`<article><div><b>${name}</b><span>${desc}</span></div><strong>${h.attributes[id]||0}</strong><button data-add-attribute="${id}" ${state.materials.growthCrystal<=0?'disabled':''}>＋</button></article>`).join('')}</div>`;document.querySelectorAll('[data-add-attribute]').forEach(b=>b.addEventListener('click',()=>addAttribute(heroId,b.dataset.addAttribute)));}
+  function addAttribute(heroId,id){const h=state.heroes.find(x=>x.id===heroId);if(!h||!['vitality','might','magic','focus'].includes(id)||state.materials.growthCrystal<=0)return;state.materials.growthCrystal--;h.attributes[id]=(h.attributes[id]||0)+1;save();openAttributes(heroId);renderGuild();tone(660);}
+
+  function openTalents(heroId){
+    const h=state.heroes.find(x=>x.id===heroId);if(!h)return;
+    $('modal').classList.add('open','hero-panel-modal');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 天賦樹`;
+    const trees=talentDefs[h.id].map(([name,nodes])=>`<section class="talent-branch"><h3>${name}</h3>${nodes.map((n,i)=>{const learned=h.talents.includes(n[0]),locked=i>0&&!h.talents.includes(nodes[i-1][0]);return `<button class="talent-node ${learned?'learned':''}" data-talent="${n[0]}" ${learned||locked||talentPoints(h)<=0?'disabled':''}><b>${learned?'◆':'◇'} ${n[1]}</b><span>${n[2]}</span>${locked?'<small>需先學習前置天賦</small>':''}</button>`;}).join('')}</section>`).join('');
+    $('modalBody').innerHTML=`<p>每兩級獲得 1 點天賦；每條路線需依序學習。可用金幣重置並重新配置。</p><div class="material-inline">可用天賦點 <b>${talentPoints(h)}</b>　已投入 <b>${h.talents.length}</b></div><div class="talent-grid">${trees}</div><button class="action-btn secondary" data-reset-talents ${!h.talents.length||state.gold<40?'disabled':''}>重置天賦 · 40 G</button>`;
+    document.querySelectorAll('[data-talent]').forEach(b=>b.addEventListener('click',()=>learnTalent(heroId,b.dataset.talent)));document.querySelector('[data-reset-talents]')?.addEventListener('click',()=>resetTalents(heroId));
+  }
+  function learnTalent(heroId,id){const h=state.heroes.find(x=>x.id===heroId),branch=talentDefs[h?.id]?.find(([,nodes])=>nodes.some(n=>n[0]===id)),index=branch?.[1].findIndex(n=>n[0]===id);if(!h||!branch||h.talents.includes(id)||talentPoints(h)<=0||index>0&&!h.talents.includes(branch[1][index-1][0]))return;h.talents.push(id);save();openTalents(heroId);renderGuild();tone(720);}
+  function resetTalents(heroId){const h=state.heroes.find(x=>x.id===heroId);if(!h||!h.talents.length||state.gold<40)return;state.gold-=40;h.talents=[];save();openTalents(heroId);renderGuild();toast('天賦已重置');}
+  function openBreakthrough(heroId){const h=state.heroes.find(x=>x.id===heroId);if(!h)return;const stage=h.breakthrough||0,cost=stage===0?{gold:120,growthCrystal:3,bossCore:1}:{gold:260,growthCrystal:6,bossCore:2},can=h.level>=breakthroughCap(h)&&stage<2&&state.gold>=cost.gold&&canPayMaterials({growthCrystal:cost.growthCrystal,bossCore:cost.bossCore});$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 角色突破`;$('modalBody').innerHTML=`<p>突破解除等級上限並覺醒永久被動，也額外獲得 1 點天賦。</p><div class="breakthrough-card"><b>第 ${stage+1} 次突破</b><span>${stage===0?'覺醒：物理與魔法威力 +2，等級上限提升至 10':'覺醒：生命 +10、開戰絕招量表 25%，等級上限提升至 15'}</span><small>${cost.gold} G · ${materialDefs.growthCrystal.name}×${cost.growthCrystal} · ${materialDefs.bossCore.name}×${cost.bossCore}</small><button class="action-btn" data-breakthrough ${can?'':'disabled'}>進行突破</button></div>`;document.querySelector('[data-breakthrough]')?.addEventListener('click',()=>breakthroughHero(heroId));}
+  function breakthroughHero(heroId){const h=state.heroes.find(x=>x.id===heroId),stage=h?.breakthrough||0,cost=stage===0?{gold:120,growthCrystal:3,bossCore:1}:{gold:260,growthCrystal:6,bossCore:2};if(!h||stage>=2||h.level<breakthroughCap(h)||state.gold<cost.gold||!canPayMaterials({growthCrystal:cost.growthCrystal,bossCore:cost.bossCore}))return;state.gold-=cost.gold;payMaterials({growthCrystal:cost.growthCrystal,bossCore:cost.bossCore});h.breakthrough++;h.bonusTalentPoints=(h.bonusTalentPoints||0)+1;save();openHeroPanel(heroId);renderGuild();tone(880,.2);toast(`${h.name}完成突破！`);}
 
   function scaledHero(h) {
     const spec=specInfo(h);
     const gear=Object.values(h.equipment||{}).map(id=>equipment.find(i=>i.id===id)).filter(Boolean);
-    const gearHp=gear.reduce((n,i)=>n+(i.hp||0)+(state.gearLevels[i.id]||0)*2,0), gearPower=gear.reduce((n,i)=>n+(i.power||0)+(state.gearLevels[i.id]||0),0), gearSp=gear.reduce((n,i)=>n+(i.sp||0),0);
+    const affixes=gear.map(i=>gearAffix(i.id)).filter(Boolean),sets=setCounts(h);
+    const gearHp=gear.reduce((n,i)=>n+(i.hp||0)+(state.gearLevels[i.id]||0)*2,0)+affixes.reduce((n,a)=>n+(a.hp||0),0), gearPhysical=gear.reduce((n,i)=>n+(i.physicalPower||0)+(i.slot==='weapon'?(state.gearLevels[i.id]||0):0),0)+affixes.reduce((n,a)=>n+(a.physicalPower||0),0), gearMagic=gear.reduce((n,i)=>n+(i.magicPower||0)+(i.slot==='weapon'?(state.gearLevels[i.id]||0):0),0)+affixes.reduce((n,a)=>n+(a.magicPower||0),0), gearSp=gear.reduce((n,i)=>n+(i.sp||0),0)+affixes.reduce((n,a)=>n+(a.sp||0),0);
     const captain=state.activeParty.includes('tor')&&state.heroes.find(x=>x.id==='tor')?.specialization==='captain';
-    const specPower={breaker:3,deadeye:4,storm:4,inquisitor:4,vanguard:3}[spec?.id]||0;
+    const specPhysical={breaker:3,deadeye:4,vanguard:3}[spec?.id]||0;const specMagic={storm:4,inquisitor:4}[spec?.id]||0;
     const specHp=(spec?.id==='bulwark'?20:0)+(spec?.id==='saint'?10:0)+(captain?8:0);
-    return { ...h, skills:h.skills.filter(s=>(h.activeSkills||h.skills.slice(0,4).map(x=>x.id)).includes(s.id)), maxHp: Math.max(20,h.maxHp + (h.level - 1) * 5 +(h.attributes?.vitality||0)*6+specHp+gearHp+(h.injury?.hp||0)), maxSp:Math.max(1,h.maxSp+gearSp+Math.floor((h.attributes?.focus||0)/3)+(h.injury?.sp||0)), power: Math.max(3,h.power + (h.level - 1) * 2 +(h.attributes?.might||0)*2+specPower+gearPower+(h.injury?.power||0)) };
+    const bondMates=state.activeParty.filter(id=>id!==h.id&&bondLevel(h.id,id)>0).length,bondMasters=state.activeParty.filter(id=>id!==h.id&&bondLevel(h.id,id)>1).length;
+    const breakPower=(h.breakthrough||0)>=1?2:0,breakHp=(h.breakthrough||0)>=2?10:0;
+    return { ...h, skills:h.skills.filter(s=>(h.activeSkills||h.skills.slice(0,4).map(x=>x.id)).includes(s.id)), maxHp: Math.max(20,h.maxHp + (h.level - 1) * 5 +(h.attributes?.vitality||0)*6+specHp+gearHp+heroEffect(h,'hpBoost')+breakHp+bondMates*3+(sets.frontier>=2?8:0)+(h.injury?.hp||0)), maxSp:Math.max(1,h.maxSp+gearSp+(sets.ash>=2?1:0)+Math.floor((h.attributes?.focus||0)/3)+(h.injury?.sp||0)), physicalPower:Math.max(2,h.physicalPower+(h.level-1)+(h.attributes?.might||0)*2+specPhysical+gearPhysical+heroEffect(h,'physicalBoost')+breakPower+bondMasters+(sets.moon>=2?2:0)+(h.injury?.physicalPower||0)),magicPower:Math.max(2,h.magicPower+(h.level-1)+(h.attributes?.magic||0)*2+specMagic+gearMagic+heroEffect(h,'magicBoost')+breakPower+bondMasters+(sets.ash>=2?2:0)+(h.injury?.magicPower||0)) };
   }
 
   function openSpecialization(heroId) {
@@ -428,51 +534,70 @@
   function equipItem(heroId,itemId){const hero=state.heroes.find(h=>h.id===heroId);const item=equipment.find(i=>i.id===itemId);const index=state.inventory.indexOf(itemId);if(!hero||!item||index<0||item.jobs&&!item.jobs.includes(hero.job))return;if(hero.equipment[item.slot])state.inventory.push(hero.equipment[item.slot]);hero.equipment[item.slot]=itemId;state.inventory.splice(index,1);save();openEquipment(heroId);renderGuild();tone(600);}
   function unequipItem(heroId,slot){const hero=state.heroes.find(h=>h.id===heroId);const id=hero?.equipment?.[slot];if(!hero||!id)return;state.inventory.push(id);hero.equipment[slot]=null;save();openEquipment(heroId);renderGuild();}
 
-  function trainedSkill(hero,base){const rank=hero.skillRanks?.[base.id]||0;const skill={...base,rank};if(rank>=1){['damage','heal','healAll','shield','stagger'].forEach(k=>{if(skill[k])skill[k]=typeof skill[k]==='number'?Math.round(skill[k]*1.15*100)/100:skill[k];});}if(rank>=2)skill.cost=Math.max(0,skill.cost-1);return skill;}
+  function trainedSkill(hero,base){
+    const rank=hero.skillRanks?.[base.id]||0,skill={...base,rank};
+    if(rank>=1)['damage','heal','healAll','shield','stagger','powerAll'].forEach(k=>{if(skill[k])skill[k]=Math.round(skill[k]*1.15*100)/100;});
+    if(rank>=2)skill.cost=Math.max(0,skill.cost-1);
+    const evo=hero.skillEvolutions?.[base.id];
+    if(evo==='force')['damage','heal','healAll','shield','stagger','powerAll','counter','regenAll'].forEach(k=>{if(skill[k])skill[k]=Math.round(skill[k]*1.2*100)/100;});
+    if(evo==='tactics'){let applied=false;['vulnerable','burn','blind'].forEach(k=>{if(skill[k]){skill[k]++;applied=true;}});if(skill.weaken){skill.weaken++;applied=true;}if(skill.armorBreak){skill.armorBreak++;applied=true;}if(skill.buffTurns){skill.buffTurns++;applied=true;}if(!applied)skill.restoreSelf=(skill.restoreSelf||0)+1;}
+    if(skill.shield)skill.shield+=heroEffect(hero,'shieldBoost');if(skill.guardAll)skill.guardAll+=heroEffect(hero,'guardBoost');if(skill.counter)skill.counter+=heroEffect(hero,'counterBoost');
+    if(skill.stagger)skill.stagger=Math.round(skill.stagger*(1+heroEffect(hero,'staggerRate'))+heroEffect(hero,'staggerFlat'));if(skill.weaken)skill.weaken+=heroEffect(hero,'weakenBoost');
+    if(skill.vulnerable)skill.vulnerable+=heroEffect(hero,'debuffTurns');if(skill.burn)skill.burn+=heroEffect(hero,'burnTurns');if(skill.blind)skill.blind+=heroEffect(hero,'blindTurns');if(skill.armorBreak)skill.armorBreak+=heroEffect(hero,'armorBreakBoost');
+    if(skill.powerAll)skill.powerAll+=heroEffect(hero,'buffPower');if(skill.buffTurns)skill.buffTurns+=heroEffect(hero,'buffTurns');if(skill.restoreAll)skill.restoreAll+=heroEffect(hero,'restoreBoost');if(skill.regenAll)skill.regenAll+=heroEffect(hero,'regenBoost');
+    skill.healRate=heroEffect(hero,'healRate');skill.burnDamage=7+heroEffect(hero,'burnDamage');return skill;
+  }
   function skillDetailText(hero,skill){
     const targetNames={enemy:'單體敵人',enemies:'全體敵人',self:'自身',allies:'全體友軍',lowest:'生命最低友軍'};
-    const power=hero?.hp!==undefined?hero.power:scaledHero(hero).power;
+    const source=hero?.hp!==undefined?hero:scaledHero(hero);const power=skill.damageType==='magic'?source.magicPower:source.physicalPower;
     const parts=[`目標：${targetNames[skill.target]||'特殊'}`];
-    if(skill.damage){const estimate=Math.round(power*skill.damage);parts.push(`威力 ×${skill.damage}（約 ${estimate} 傷害／護甲前）`);}
+    if(skill.damage){const type=skill.damageType==='magic'?'魔法':'物理';const estimate=Math.round(power*skill.damage);parts.push(`${type}威力 ×${skill.damage}（約 ${estimate} 傷害／防禦前）`);}
     if(skill.heal)parts.push(`治療 ${skill.heal}`);
     if(skill.healAll)parts.push(`全隊治療 ${skill.healAll}`);
     if(skill.shield)parts.push(`護盾 ${skill.shield}`);
     if(skill.stagger)parts.push(`破勢 ${skill.stagger}`);else if(skill.damage)parts.push('破勢 4');
     if(skill.vulnerable)parts.push(`易傷 ${skill.vulnerable} 回合（承傷 +35%）`);
-    if(skill.burn)parts.push(`燃燒 ${skill.burn} 回合（每回合 7）`);
+    if(skill.burn)parts.push(`燃燒 ${skill.burn} 回合（每回合 ${skill.burnDamage||7}）`);
     if(skill.taunt)parts.push('嘲諷本輪攻擊');
     if(skill.counter)parts.push(`下次受擊反傷 ${skill.counter}`);
     if(skill.dodge)parts.push('閃避下次攻擊');
     if(skill.restoreSelf)parts.push(`自身技能點 +${skill.restoreSelf}`);
     if(skill.restoreAll)parts.push(`全隊技能點 +${skill.restoreAll}`);
     if(skill.regenAll)parts.push(`全隊每回合恢復 ${skill.regenAll}，持續 3 回合`);
+    if(skill.powerAll)parts.push(`全隊物理／魔法威力 +${skill.powerAll}，持續 ${skill.buffTurns||2} 回合`);
+    if(skill.guardAll)parts.push(`全隊承傷 -${Math.round(skill.guardAll*100)}%，持續 ${skill.buffTurns||2} 回合`);
     if(skill.cleanseAll)parts.push('清除全隊中毒');
     if(skill.reviveAll)parts.push(`復甦倒下隊友至 ${Math.round(skill.reviveAll*100)}% 生命`);
     if(skill.pierce)parts.push('無視護甲');
     if(skill.weaken)parts.push(`永久降低敵人威力 ${skill.weaken}`);
+    if(skill.blind)parts.push(`致盲 ${skill.blind} 回合（造成傷害 -30%）`);
+    if(skill.armorBreak)parts.push(`永久降低護甲 ${skill.armorBreak}`);
     if(skill.statusScale)parts.push('目標每有易傷、燃燒或失衡其中 1 種，傷害 +20%');
     if(skill.ultimateExecute)parts.push('目標生命 ≤50% 時，傷害 +35%');
     return parts.join(' · ');
   }
   function openTraining(heroId){
     const hero=state.heroes.find(h=>h.id===heroId&&h.owned);if(!hero)return;
-    $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${hero.name}的技能配置`;
+    $('modal').classList.add('open','training-modal');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${hero.name}的技能配置`;
     const active=hero.activeSkills||hero.skills.slice(0,4).map(s=>s.id);
     const slots=active.map((id,index)=>`<label>技能欄 ${index+1}<select data-skill-slot="${index}">${hero.skills.map(s=>`<option value="${s.id}" ${s.id===id?'selected':''}>${s.name}</option>`).join('')}</select></label>`).join('');
     $('modalBody').innerHTML=`<p>從六項技能中配置四項出戰技能。技能只消耗戰技殘頁與奧義印記。</p><div class="material-inline">戰技殘頁 <b>${state.materials.skillDust}</b>　奧義印記 <b>${state.materials.skillCore}</b></div><div class="loadout-grid">${slots}</div><article class="ultimate-preview"><span>絕招</span><b>${hero.ultimate.name}</b><small>${skillDetailText(hero,{...hero.ultimate,cost:0})}</small></article><div class="training-list">${hero.skills.map(s=>{const rank=hero.skillRanks?.[s.id]||0,cost=skillUpgradeCost(rank),trained=trainedSkill(hero,s);return `<div class="training-skill"><div><b>${s.name}</b><span>${skillDetailText(hero,trained)}</span></div><em>${'◆'.repeat(rank)}${'◇'.repeat(2-rank)}</em><button data-upgrade-skill="${s.id}" ${rank>=2||!canPayMaterials(cost)?'disabled':''}>${rank>=2?'精通':costText(cost)}</button></div>`;}).join('')}</div>`;
+    document.querySelectorAll('.training-skill').forEach((card,index)=>{const s=hero.skills[index],rank=hero.skillRanks?.[s.id]||0,evo=hero.skillEvolutions?.[s.id];if(rank>=2)card.insertAdjacentHTML('beforeend',evo?`<small class="evolution-chosen">二階進化：${evo==='force'?'威力型（主要數值 +20%）':'戰術型（狀態延長／附加恢復）'}</small>`:`<div class="evolution-options"><button data-evolve-skill="${s.id}" data-evolution="force">威力進化<br><small>主要數值 +20%</small></button><button data-evolve-skill="${s.id}" data-evolution="tactics">戰術進化<br><small>狀態延長；無狀態則回復技能點</small></button></div>`);});
     document.querySelectorAll('[data-upgrade-skill]').forEach(b=>b.addEventListener('click',()=>upgradeSkill(heroId,b.dataset.upgradeSkill)));
     document.querySelectorAll('[data-skill-slot]').forEach(s=>s.addEventListener('change',()=>setSkillSlot(heroId,+s.dataset.skillSlot,s.value)));
+    document.querySelectorAll('[data-evolve-skill]').forEach(b=>b.addEventListener('click',()=>chooseSkillEvolution(heroId,b.dataset.evolveSkill,b.dataset.evolution)));
   }
   function setSkillSlot(heroId,index,skillId){const hero=state.heroes.find(h=>h.id===heroId);if(!hero||!hero.skills.some(s=>s.id===skillId))return;if(hero.activeSkills.some((id,i)=>id===skillId&&i!==index)){toast('同一技能不能重複裝備');return openTraining(heroId);}hero.activeSkills[index]=skillId;save();openTraining(heroId);tone(540);}
-  function skillUpgradeCost(rank){const factor=1-(state.facilities.training||0)*.1;return {skillDust:Math.max(1,Math.ceil((rank?10:4)*factor)),skillCore:rank?1:0};}
+  function skillUpgradeCost(rank){return {skillDust:rank?10:4,skillCore:rank?1:0};}
   function upgradeSkill(heroId,skillId){const hero=state.heroes.find(h=>h.id===heroId);const rank=hero?.skillRanks?.[skillId]||0,cost=skillUpgradeCost(rank);if(!hero||rank>=2||!canPayMaterials(cost))return;payMaterials(cost);hero.skillRanks[skillId]=rank+1;save();openTraining(heroId);renderGuild();tone(700);}
+  function chooseSkillEvolution(heroId,skillId,choice){const hero=state.heroes.find(h=>h.id===heroId);if(!hero||hero.skillRanks?.[skillId]<2||hero.skillEvolutions?.[skillId]||!['force','tactics'].includes(choice))return;hero.skillEvolutions[skillId]=choice;save();openTraining(heroId);tone(820,.16);toast('技能完成二階進化');}
 
   function startExpedition(id) {
     const contract = state.contracts.find(c => c.id === id); if (!contract) return;
     if(state.activeParty.length!==3)return toast('請先編成三人遠征隊');
     const selected=state.activeParty.map(id=>state.heroes.find(h=>h.id===id&&h.owned)).filter(Boolean);if(selected.length!==3)return toast('隊伍資料異常，請重新編成');
     discover('zones',contract.zone);
-    expedition = { contract, node: 0, total: contract.nodes, modifier: dailyModifier().id, relics: [], lootItems:[], party: selected.map(h => {const scaled=scaledHero(h);return { ...scaled, hp: scaled.maxHp, sp: scaled.maxSp, shield: 0, burn: 0, poison: 0, vulnerable: 0, taunt: false, ultCharge:0, counter:0, dodge:false, regenTurns:0, regenAmount:0, laststandUsed:false };}), earned: 0 };
+    expedition = { contract, node: 0, total: contract.nodes, modifier: dailyModifier().id, relics: [], lootItems:[], party: selected.map(h => {const scaled=scaledHero(h);return { ...scaled, hp: scaled.maxHp, sp: scaled.maxSp, shield: 0, burn: 0, poison: 0, vulnerable: 0, frail:0, powerBuff:0, powerBuffTurns:0, guardBuff:0, guardBuffTurns:0, taunt: false, ultCharge:0, counter:0, dodge:false, regenTurns:0, regenAmount:0, laststandUsed:false };}), earned: 0 };
     state.stats.expeditions++; save();
     $('guildView').classList.remove('active'); $('expeditionView').classList.add('active'); $('expeditionTitle').textContent = `${contract.zone} · ${contract.title}`;
     renderRoute(); showNode();
@@ -496,7 +621,7 @@
       {id:'camp',symbol:'△',name:'荒廢營地',desc:'安全休整，恢復生命與少量氣勢，但會消耗一個節點。',risk:'安全'}
     ];
     const options=[{id:'skirmish',symbol:'×',name:'巡邏路線',desc:'敵人數量較少，報酬與風險穩定。',risk:'一般'},pick(alternatives)];
-    if(state.facilities.scouts>=2){const extra=alternatives.find(x=>!options.some(o=>o.id===x.id));if(extra)options.push(extra);}
+    if(hasRenownPerk('routes')){const extra=alternatives.find(x=>!options.some(o=>o.id===x.id));if(extra)options.push(extra);}
     $('eventStage').innerHTML=`<article class="event-card route-choice"><span class="eyebrow">CHOOSE YOUR PATH · ${expedition.node+1}/${expedition.total}</span><h2>決定下一段路線</h2><p>路線會改變遭遇與收益。終點必定是區域威脅。</p><div class="route-options">${options.map(o=>`<button data-route-choice="${o.id}"><i>${o.symbol}</i><span>${o.risk}</span><b>${o.name}</b><small>${o.desc}</small></button>`).join('')}</div></article>`;
     document.querySelectorAll('[data-route-choice]').forEach(b=>b.addEventListener('click',()=>chooseRoute(b.dataset.routeChoice)));
   }
@@ -510,7 +635,7 @@
         { label: '搜索物資', action: () => { const g = rand(12, 28); expedition.earned += g; nextNode(`找到 ${g} 金幣`); } }
       ]},
       { symbol: '?', title: '戴面具的旅人', text: '旅人提出交易：用一份補給換取他手中的古老護符。', options: [
-        { label: state.supplies > 0 ? '交換補給' : '補給不足', disabled: state.supplies <= 0, action: () => { state.supplies--; expedition.party.forEach(h => h.power += 2); nextNode('護符令全隊威力提升'); } },
+        { label: state.supplies > 0 ? '交換補給' : '補給不足', disabled: state.supplies <= 0, action: () => { state.supplies--; expedition.party.forEach(h => {h.physicalPower+=2;h.magicPower+=2;}); nextNode('護符令全隊雙威力提升'); } },
         { label: '禮貌離開', action: () => nextNode('你們繼續趕路') }
       ]}
     ];
@@ -547,12 +672,14 @@
       const seasonalElite=currentSeason().id==='beast'?.12:currentSeason().id==='longnight'&&expedition.node===expedition.total-1?.18:0;
       const threatElite=(state.regions[c.zone]?.threat||0)/500;
       const eliteChance=encounter==='elite'?1:(c.risk===3?.55:c.risk===2?.28:0)+(difficulties[state.difficulty]?.elite||0)+seasonalElite+threatElite; const affix=!t.boss&&Math.random()<eliteChance?pick(eliteAffixes):null;
-      return { ...t, power: t.power + (expedition.modifier === 'cruel' ? 2 : 0), id: `${type}-${i}`, type, maxHp, hp: maxHp, stagger: 0, shield: 0, burn: 0, vulnerable: 0, stunned: 0, weaken: 0, intent: null, affix, affixTriggered:false, phase2:false };
+      return { ...t, power: t.power + (expedition.modifier === 'cruel' ? 2 : 0), id: `${type}-${i}`, type, maxHp, hp: maxHp, stagger: 0, shield: 0, burn: 0, vulnerable: 0, stunned: 0, weaken: 0, blind:0, armorBreak:0, intent: null, affix, affixTriggered:false, phase2:false };
     });
     types.forEach(type=>discover('enemies',type));save();
     expedition.party.forEach(h => {
-      h.shield = (expedition.relics.includes('ward') ? 8 : 0)+(hasTrait(h,'warding')?10:0);
+      const affixShield=Object.values(h.equipment||{}).reduce((n,id)=>n+(gearAffix(id)?.startShield||0),0),oathShield=setCounts(h).oath>=2?8:0;
+      h.shield = (expedition.relics.includes('ward') ? 8 : 0)+(hasTrait(h,'warding')?10:0)+affixShield+oathShield;
       h.focusUsed=false; h.evasionUsed=false;h.counter=0;h.dodge=false;h.regenTurns=0;
+      if((h.breakthrough||0)>=2)h.ultCharge=Math.max(h.ultCharge||0,25);
       if (expedition.modifier === 'tailwind') h.sp = Math.min(h.maxSp, h.sp + 1);
       if (h.specialization === 'vanguard') h.sp = Math.min(h.maxSp, h.sp + 1);
     });
@@ -571,6 +698,10 @@
       else if(e.boss&&e.phase2) e.intent={type:'cleave',value:9+combat.round,label:`橫掃全隊 ${9+combat.round}`};
       else if(e.type==='cultist'&&Math.random()<.42+special) e.intent={type:'empower',value:2,label:'戰意儀式'};
       else if(e.type==='golem'&&Math.random()<.42+special) e.intent={type:'guard',value:16,label:'岩盾守護'};
+      else if(e.disruptor&&Math.random()<.5+special) e.intent={type:'disrupt',value:1,label:'裂風尖嘯：技能點 -1'};
+      else if(e.hexer&&Math.random()<.5+special) e.intent={type:'curse',value:2,label:'枯印詛咒：脆弱'};
+      else if(e.drainer&&e.hp<e.maxHp*.8&&Math.random()<.5+special) e.intent={type:'drain',value:e.power,label:`汲血 ${e.power}`};
+      else if(e.protector&&Math.random()<.5+special) e.intent={type:'guard',value:18,label:'誓盾守護'};
       else if(e.type==='bandit'&&Math.random()<.35+special) e.intent={type:'sunder',value:7,label:'破盾斬 7'};
       else if (e.healer && combat.enemies.some(a=>a.hp>0&&a.hp<a.maxHp) && Math.random()<.6) e.intent = { type: 'heal', value: 14, label: '聚光治療' };
       else if (e.venomous && Math.random()<.48) e.intent = { type: 'venom', value: 6, label: '毒牙 6＋中毒' };
@@ -605,6 +736,8 @@
     if(unit.dodge)buffs.push(statusChip('buff','閃避','1 次','完全避開下一次攻擊'));
     if(unit.counter>0)buffs.push(statusChip('buff','反擊',unit.counter,`下次受擊反傷 ${unit.counter}`));
     if(unit.regenTurns>0)buffs.push(statusChip('buff','再生',`${unit.regenAmount}×${unit.regenTurns}`,`每次行動恢復 ${unit.regenAmount} 生命，剩餘 ${unit.regenTurns} 回合`));
+    if(unit.powerBuffTurns>0)buffs.push(statusChip('buff','振奮',`+${unit.powerBuff}`,`威力提高 ${unit.powerBuff}，剩餘 ${unit.powerBuffTurns} 回合`));
+    if(unit.guardBuffTurns>0)buffs.push(statusChip('buff','守護',`-${Math.round(unit.guardBuff*100)}%`,`承受傷害降低 ${Math.round(unit.guardBuff*100)}%，剩餘 ${unit.guardBuffTurns} 回合`));
     if(side==='enemy'&&unit.phase2)buffs.push(statusChip('buff','狂化','','首領進入第二階段，行動模式改變'));
     if(side==='enemy'&&unit.affix)buffs.push(statusChip('buff',unit.affix.name,'',unit.affix.desc));
     if(unit.vulnerable>0)debuffs.push(statusChip('debuff','易傷',unit.vulnerable,`承受傷害 +35%，剩餘 ${unit.vulnerable} 回合`));
@@ -612,6 +745,9 @@
     if(unit.poison>0)debuffs.push(statusChip('debuff','中毒',unit.poison,`敵方回合結束受到 4 傷害，剩餘 ${unit.poison} 回合`));
     if(unit.stunned>0)debuffs.push(statusChip('debuff','失衡',unit.stunned,`無法行動，剩餘 ${unit.stunned} 回合`));
     if(unit.weaken>0)debuffs.push(statusChip('debuff','弱化',`-${unit.weaken}`,`威力永久降低 ${unit.weaken}`));
+    if(unit.blind>0)debuffs.push(statusChip('debuff','致盲',unit.blind,`造成傷害降低 30%，剩餘 ${unit.blind} 回合`));
+    if(unit.armorBreak>0)debuffs.push(statusChip('debuff','裂甲',`-${unit.armorBreak}`,`護甲永久降低 ${unit.armorBreak}`));
+    if(unit.frail>0)debuffs.push(statusChip('debuff','脆弱',unit.frail,`承受傷害提高 25%，剩餘 ${unit.frail} 回合`));
     if(unit.injury)debuffs.push(statusChip('debuff','傷勢','',unit.injury.desc||'能力受到傷勢影響'));
     return `<div class="status-bar" aria-label="目前狀態">${buffs.join('')}${debuffs.join('')||(!buffs.length?'<span class="status-empty">無狀態</span>':'')}</div>`;
   }
@@ -619,24 +755,24 @@
   function enemyHtml(e) {
     const hp = clamp(e.hp/e.maxHp*100,0,100), st = clamp(e.stagger/e.staggerMax*100,0,100);
     const intent=difficulties[state.difficulty]?.conceal?e.intent.label.replace(/\d+/g,'?'):e.intent.label;
-    return `<article class="unit ${e.hp<=0?'dead':''} ${pendingSkill?.target==='enemy'&&e.hp>0?'targetable':''}" data-enemy="${e.id}" style="--accent:${e.color}"><span class="intent">${e.hp>0?intent:'倒下'}</span><div class="unit-icon">${e.icon}</div><h3>${e.name}${e.affix?` <em class="elite-tag">${e.affix.name}</em>`:''}${e.phase2?' <em class="phase-tag">Ⅱ</em>':''}</h3>${e.affix?`<small class="enemy-trait">${e.affix.desc}</small>`:''}<div class="numbers"><span>HP ${Math.max(0,e.hp)}/${e.maxHp}</span><span>${e.shield?`盾 ${e.shield}`:''}</span></div><div class="hp-track"><i style="width:${hp}%;background:var(--red)"></i></div>${statusHtml(e,'enemy')}<div class="numbers"><span>破勢</span><span>${e.stagger}/${e.staggerMax}</span></div><div class="stagger-track"><i style="width:${st}%"></i></div></article>`;
+    return `<article class="unit ${e.hp<=0?'dead':''} ${pendingSkill?.target==='enemy'&&e.hp>0?'targetable':''}" data-enemy="${e.id}" style="--accent:${e.color}"><span class="intent">${e.hp>0?intent:'倒下'}</span><div class="unit-icon">${e.icon}</div><h3>${e.name}${e.affix?` <em class="elite-tag">${e.affix.name}</em>`:''}${e.phase2?' <em class="phase-tag">Ⅱ</em>':''}</h3>${e.affix?`<small class="enemy-trait">${e.affix.desc}</small>`:''}<div class="numbers"><span>HP ${Math.max(0,e.hp)}/${e.maxHp}</span><span>${e.shield?`盾 ${e.shield}`:''}</span></div><div class="hp-track"><i style="width:${hp}%;background:var(--red)"></i></div><div class="numbers"><span>物防 ${Math.max(0,e.armor-(e.armorBreak||0))}</span><span>魔防 ${e.magicResist||0}</span></div>${statusHtml(e,'enemy')}<div class="numbers"><span>破勢</span><span>${e.stagger}/${e.staggerMax}</span></div><div class="stagger-track"><i style="width:${st}%"></i></div></article>`;
   }
-  function partyHtml(h,i) { const hp=clamp(h.hp/h.maxHp*100,0,100); return `<article class="party-unit ${i===combat.heroIndex?'active':''} ${h.hp<=0?'dead':''}"><h4 style="color:${h.color}">${h.name} · ${h.job}</h4><div class="numbers"><span>HP ${Math.max(0,h.hp)}/${h.maxHp}</span><span>技能 ${h.sp}/${h.maxSp}</span></div><div class="hp-track"><i style="width:${hp}%;background:${h.color}"></i></div>${statusHtml(h,'party')}<div class="ult-track" title="絕招氣勢 ${h.ultCharge}/100"><i style="width:${h.ultCharge}%"></i></div></article>`; }
+  function partyHtml(h,i) { const hp=clamp(h.hp/h.maxHp*100,0,100); return `<article class="party-unit ${i===combat.heroIndex?'active':''} ${h.hp<=0?'dead':''}"><div class="combat-portrait" style="--accent:${h.color}"><img src="${portraitPath(h.id)}" alt="${h.name}頭像"></div><div class="party-unit-info"><h4 style="color:${h.color}">${h.name} · ${h.job}</h4><div class="numbers"><span>HP ${Math.max(0,h.hp)}/${h.maxHp}</span><span>技能 ${h.sp}/${h.maxSp}</span></div><div class="hp-track"><i style="width:${hp}%;background:${h.color}"></i></div>${statusHtml(h,'party')}<div class="ult-track" title="絕招氣勢 ${h.ultCharge}/100"><i style="width:${h.ultCharge}%"></i></div></div></article>`; }
   function skillCost(hero,skill){return Math.max(0,skill.cost-(hasTrait(hero,'focus')&&!hero.focusUsed&&skill.cost>0?1:0));}
   function skillHtml(s) { const h=expedition.party[combat.heroIndex],cost=skillCost(h,s); return `<button class="skill" data-skill="${s.id}" ${combat.locked||h.sp<cost?'disabled':''}><b>${s.name}</b><span class="skill-details">${skillDetailText(h,s)}</span><small>${cost ? `${cost} 技能點` : '基礎行動'}${cost<s.cost?' · 專注減免':''}${s.rank?` · 強化 ${s.rank}`:''}</small></button>`; }
-  function ultimateHtml(hero){return `<button class="skill ultimate-skill" data-ultimate ${combat.locked||hero.ultCharge<100?'disabled':''}><b>✦ ${hero.ultimate.name}</b><span class="skill-details">${skillDetailText(hero,hero.ultimate)}</span><small>${hero.ultCharge>=100?'氣勢已滿 · 可發動':`氣勢 ${hero.ultCharge}/100`}</small></button>`;}
+  function ultimateHtml(hero){const ultimate=trainedSkill(hero,hero.ultimate);return `<button class="skill ultimate-skill" data-ultimate ${combat.locked||hero.ultCharge<100?'disabled':''}><b>✦ ${hero.ultimate.name}</b><span class="skill-details">${skillDetailText(hero,ultimate)}</span><small>${hero.ultCharge>=100?'氣勢已滿 · 可發動':`氣勢 ${hero.ultCharge}/100`}</small></button>`;}
 
   function chooseSkill(id) {
     if (combat.locked) return; const hero = expedition.party[combat.heroIndex]; const base = hero.skills.find(s => s.id === id);const skill=base?trainedSkill(hero,base):null;if (!skill || hero.sp < skillCost(hero,skill)) return;
     if (skill.target === 'enemy') { pendingSkill = skill; tone(430); renderCombat(); }
     else executeSkill(skill);
   }
-  function chooseUltimate(){const hero=expedition.party[combat.heroIndex];if(combat.locked||hero.ultCharge<100)return;progressDaily('ultimate');save();const skill={...hero.ultimate,isUltimate:true,cost:0};if(skill.target==='enemy'){pendingSkill=skill;tone(820,.12);renderCombat();}else executeSkill(skill);}
+  function chooseUltimate(){const hero=expedition.party[combat.heroIndex];if(combat.locked||hero.ultCharge<100)return;progressDaily('ultimate');save();const skill={...trainedSkill(hero,hero.ultimate),isUltimate:true,cost:0};if(skill.target==='enemy'){pendingSkill=skill;tone(820,.12);renderCombat();}else executeSkill(skill);}
 
   function executeSkill(skill, target) {
     if (combat.locked) return; const hero = expedition.party[combat.heroIndex];const cost=skill.isUltimate?0:skillCost(hero,skill);if(skill.isUltimate)hero.ultCharge=0;else{hero.sp-=cost;if(cost<skill.cost)hero.focusUsed=true;}combat.locked = true;
     const targets = skill.target === 'enemies' ? combat.enemies.filter(e=>e.hp>0) : target ? [target] : [];
-    targets.forEach(e => damageEnemy(hero, e, skill));
+    targets.forEach(e => {if(skill.damage)damageEnemy(hero,e,skill);else{if(skill.vulnerable)e.vulnerable=Math.max(e.vulnerable,skill.vulnerable);if(skill.blind)e.blind=Math.max(e.blind,skill.blind);if(skill.armorBreak){e.armorBreak=(e.armorBreak||0)+skill.armorBreak;}if(skill.weaken){e.power=Math.max(1,e.power-skill.weaken);e.weaken=(e.weaken||0)+skill.weaken;}if(skill.stagger){e.stagger+=skill.stagger;if(e.stagger>=e.staggerMax){e.stagger=0;e.stunned=1;}}}});
     if (skill.shield && skill.target === 'allies') expedition.party.filter(h=>h.hp>0).forEach(h=>h.shield+=skill.shield+(hero.specialization==='bulwark'?5:0));
     if (skill.shield && skill.target === 'self') hero.shield += skill.shield;
     if (skill.taunt) hero.taunt = true;
@@ -644,7 +780,9 @@
     if(skill.dodge)hero.dodge=true;
     if(skill.restoreSelf)hero.sp=Math.min(hero.maxSp,hero.sp+skill.restoreSelf);
     if (skill.restoreAll) expedition.party.filter(h=>h.hp>0).forEach(h=>h.sp=Math.min(h.maxSp,h.sp+skill.restoreAll));
-    const healBoost = (expedition.relics.includes('ember') ? 1.35 : 1) * (hero.specialization==='hearth'?1.3:1) * (hero.specialization==='saint'?1.25:1);
+    if(skill.powerAll)expedition.party.filter(h=>h.hp>0).forEach(h=>{h.powerBuff=Math.max(h.powerBuff||0,skill.powerAll);h.powerBuffTurns=Math.max(h.powerBuffTurns||0,skill.buffTurns||2);});
+    if(skill.guardAll)expedition.party.filter(h=>h.hp>0).forEach(h=>{h.guardBuff=Math.max(h.guardBuff||0,skill.guardAll);h.guardBuffTurns=Math.max(h.guardBuffTurns||0,skill.buffTurns||2);});
+    const healBoost = (expedition.relics.includes('ember') ? 1.35 : 1) * (hero.specialization==='hearth'?1.3:1) * (hero.specialization==='saint'?1.25:1) * (1+(skill.healRate||0));
     if(skill.reviveAll)expedition.party.filter(h=>h.hp<=0).forEach(h=>{h.hp=Math.max(1,Math.round(h.maxHp*skill.reviveAll));combat.log.push(`${h.name}重新站了起來！`);});
     if (skill.heal) { const ally=[...expedition.party].filter(h=>h.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; const amount=Math.min(Math.round(skill.heal*healBoost),ally.maxHp-ally.hp); ally.hp+=amount; combat.log.push(`${hero.name}使${ally.name}恢復 ${amount} 生命。`); }
     if (skill.healAll) expedition.party.filter(h=>h.hp>0).forEach(h=>h.hp=Math.min(h.maxHp,h.hp+Math.round(skill.healAll*healBoost)));
@@ -665,18 +803,19 @@
     if(hero.specialization==='dancer'&&skill.target==='enemies')specDamage*=1.2;
     if(skill.statusScale)specDamage*=1+([enemy.vulnerable>0,enemy.burn>0,enemy.stunned>0].filter(Boolean).length*.2);
     if(skill.ultimateExecute&&enemy.hp<=enemy.maxHp*.5)specDamage*=1.35;
+    if(enemy.vulnerable>0)specDamage*=1+heroEffect(hero,'vulnerableDamage');
+    if(enemy.hp<=enemy.maxHp*.35)specDamage*=1+heroEffect(hero,'executeDamage');
     if(hasTrait(hero,'opening')&&combat.round===1)specDamage*=1.25;
     if(hasTrait(hero,'execute')&&enemy.hp<=enemy.maxHp*.35)specDamage*=1.3;
-    const raw = Math.round(hero.power * skill.damage * specDamage * (.9 + Math.random()*.2)); const armor = skill.pierce ? 0 : enemy.armor; let dmg=Math.max(1,raw-armor);
+    const attackPower=(skill.damageType==='magic'?hero.magicPower:hero.physicalPower)+(hero.powerBuff||0);const raw = Math.round(attackPower * skill.damage * specDamage * (.9 + Math.random()*.2)); const defense=skill.pierce?0:skill.damageType==='magic'?(enemy.magicResist||0):Math.max(0,enemy.armor-(enemy.armorBreak||0)); let dmg=Math.max(1,raw-defense);
     if (enemy.vulnerable>0) dmg=Math.round(dmg*1.35);
     if (enemy.stagger>=enemy.staggerMax*.5 && expedition.relics.includes('hunter')) dmg=Math.round(dmg*1.3);
     const absorbed = Math.min(enemy.shield, dmg); enemy.shield -= absorbed; dmg -= absorbed; enemy.hp -= dmg;
     let stagger=skill.stagger || 4;
     if(hero.specialization==='breaker') stagger=Math.round(stagger*1.25);
-    if(hero.specialization==='storm'&&skill.id==='nova') stagger+=8;
     if(hero.specialization==='inquisitor') stagger+=5;
     if(hasTrait(hero,'resolve')&&hero.hp<=hero.maxHp*.5)stagger=Math.round(stagger*1.3);
-    enemy.stagger += stagger; if (skill.vulnerable) enemy.vulnerable=skill.vulnerable; if(skill.burn) enemy.burn=skill.burn;if(skill.weaken){enemy.power=Math.max(1,enemy.power-skill.weaken);enemy.weaken=(enemy.weaken||0)+skill.weaken;}
+    enemy.stagger += stagger; if (skill.vulnerable) enemy.vulnerable=skill.vulnerable; if(skill.burn){enemy.burn=skill.burn;enemy.burnDamage=skill.burnDamage||7;}if(skill.weaken){enemy.power=Math.max(1,enemy.power-skill.weaken);enemy.weaken=(enemy.weaken||0)+skill.weaken;}
     if(skill.burn&&hasTrait(hero,'wildfire')){const other=combat.enemies.find(e=>e.hp>0&&e!==enemy);if(other)other.burn=Math.max(other.burn,1);}
     combat.log.push(`${hero.name}以${skill.name}對${enemy.name}造成 ${dmg} 傷害${absorbed ? `（護盾吸收 ${absorbed}）` : ''}。`);
     if(enemy.stagger>=enemy.staggerMax&&enemy.hp>0){enemy.stagger=0;enemy.stunned=1;if(hasTrait(hero,'momentum'))hero.sp=Math.min(hero.maxSp,hero.sp+1);if(hasTrait(hero,'aftershock'))combat.enemies.filter(e=>e.hp>0&&e!==enemy).forEach(e=>{e.hp-=5;resolveEnemyDeath(e);});combat.log.push(`${enemy.name}被破勢，本輪無法行動！`);}
@@ -686,6 +825,8 @@
   function resolveEnemyDeath(enemy,killer){if(enemy.hp>0||enemy.affixTriggered)return;enemy.affixTriggered=true;if(killer&&hasTrait(killer,'hunt'))killer.hp=Math.min(killer.maxHp,killer.hp+4);if(enemy.affix?.id==='volatile'){expedition.party.filter(h=>h.hp>0).forEach(h=>hurtHero(h,5,true));combat.log.push(`${enemy.name}爆裂，對全隊造成 5 傷害！`);}}
 
   function hurtHero(target,amount,bypassShield=false,attacker=null){
+    if(target.frail>0)amount=Math.ceil(amount*1.25);
+    if(target.guardBuff>0)amount=Math.max(0,Math.ceil(amount*(1-target.guardBuff)));
     if(target.dodge){target.dodge=false;amount=0;combat.log.push(`${target.name}完全閃避了攻擊！`);}
     else if(hasTrait(target,'evasion')&&!target.evasionUsed){target.evasionUsed=true;amount=Math.ceil(amount/2);}
     const absorbed=bypassShield?0:Math.min(target.shield,amount);target.shield-=absorbed;const damage=amount-absorbed;target.hp-=damage;
@@ -700,20 +841,24 @@
     setTimeout(() => {
       combat.enemies.forEach(e=>e.shield=0);
       for (const e of combat.enemies.filter(x=>x.hp>0)) {
-        if(e.burn>0){const d=7;e.hp-=d;e.burn--;combat.log.push(`${e.name}受到 ${d} 點燃燒傷害。`);if(e.hp<=0){resolveEnemyDeath(e);continue;}}
+        if(e.burn>0){const d=e.burnDamage||7;e.hp-=d;e.burn--;combat.log.push(`${e.name}受到 ${d} 點燃燒傷害。`);if(e.hp<=0){resolveEnemyDeath(e);continue;}}
         if(e.stunned>0){e.stunned--;combat.log.push(`${e.name}失去本輪行動。`);continue;}
         if(e.intent.type==='shield'){combat.enemies.filter(x=>x.hp>0).forEach(x=>x.shield+=e.intent.value);combat.log.push(`${e.name}為敵方施加護盾。`);continue;}
         if(e.intent.type==='heal'){const ally=[...combat.enemies].filter(x=>x.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];const healed=Math.min(e.intent.value,ally.maxHp-ally.hp);ally.hp+=healed;combat.log.push(`${e.name}使${ally.name}恢復 ${healed} 生命。`);continue;}
         if(e.intent.type==='guard'){const ally=[...combat.enemies].filter(x=>x.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];ally.shield+=e.intent.value;combat.log.push(`${e.name}為${ally.name}架起 ${e.intent.value} 岩盾。`);continue;}
         if(e.intent.type==='empower'){combat.enemies.filter(x=>x.hp>0&&x!==e).forEach(x=>x.power+=e.intent.value);combat.log.push(`${e.name}完成儀式，其他敵人威力提升！`);continue;}
-        if(e.intent.type==='cleave'){expedition.party.filter(h=>h.hp>0).forEach(h=>hurtHero(h,e.intent.value,false,e));combat.log.push(`${e.name}橫掃全隊。`);continue;}
+        if(e.intent.type==='disrupt'){expedition.party.filter(h=>h.hp>0).forEach(h=>h.sp=Math.max(0,h.sp-e.intent.value));combat.log.push(`${e.name}的尖嘯擾亂全隊，技能點下降。`);continue;}
+        if(e.intent.type==='curse'){expedition.party.filter(h=>h.hp>0).forEach(h=>h.frail=Math.max(h.frail,e.intent.value));combat.log.push(`${e.name}施加脆弱詛咒。`);continue;}
+        const blindScale=e.blind>0 ? .7 : 1;
+        if(e.intent.type==='cleave'){expedition.party.filter(h=>h.hp>0).forEach(h=>hurtHero(h,Math.round(e.intent.value*blindScale),false,e));combat.log.push(`${e.name}橫掃全隊。`);continue;}
         const taunter=expedition.party.find(h=>h.hp>0&&h.taunt); const alive=expedition.party.filter(h=>h.hp>0); if(!alive.length)break;
-        const target=taunter||pick(alive);if(e.intent.type==='sunder')target.shield=0;const hit=hurtHero(target,e.intent.value,false,e);
+        const target=taunter||pick(alive);if(e.intent.type==='sunder')target.shield=0;const hit=hurtHero(target,Math.round(e.intent.value*blindScale),false,e);
         if(e.intent.type==='venom'){target.poison=Math.max(target.poison,hasTrait(target,'antidote')?1:2);}
+        if(e.intent.type==='drain')e.hp=Math.min(e.maxHp,e.hp+hit.damage);
         combat.log.push(`${e.name}攻擊${target.name}，造成 ${hit.damage} 傷害${hit.absorbed?`（護盾吸收 ${hit.absorbed}）`:''}。`);
       }
       expedition.party.filter(h=>h.hp>0&&h.poison>0).forEach(h=>{hurtHero(h,4,true);h.poison--;combat.log.push(`${h.name}受到 4 點毒素傷害。`);});
-      expedition.party.forEach(h=>{h.taunt=false;h.shield=0;}); combat.enemies.forEach(e=>{if(e.vulnerable>0)e.vulnerable--;});
+      expedition.party.forEach(h=>{h.taunt=false;h.shield=0;if(h.frail>0)h.frail--;if(h.powerBuffTurns>0&&--h.powerBuffTurns===0)h.powerBuff=0;if(h.guardBuffTurns>0&&--h.guardBuffTurns===0)h.guardBuff=0;}); combat.enemies.forEach(e=>{if(e.vulnerable>0)e.vulnerable--;if(e.blind>0)e.blind--;});
       if(expedition.party.every(h=>h.hp<=0)) return loseExpedition();
       if(combat.enemies.every(e=>e.hp<=0)) return winCombat();
       combat.round++;combat.heroIndex=0;combat.locked=false;planIntents();beginHeroTurn();
@@ -738,6 +883,8 @@
     const risk=expedition.contract.risk;const fortune=expedition.party.some(h=>hasTrait(h,'fortune'));const final=expedition.node===expedition.total-1;
     if(Math.random()>.1+risk*.09+(fortune ? .1 : 0)+(final ? .12 : 0)+(expedition.encounter==='elite' ? .16 : 0)+(currentSeason().id==='mire'?.08:0))return null;
     const roll=Math.random();let rarity=risk===3&&roll<.2?'epic':risk>=2&&roll<.62?'rare':'common';
+    if(rarity==='epic'&&!hasRenownPerk('epicCraft'))rarity=hasRenownPerk('rareCraft')?'rare':'common';
+    if(rarity==='rare'&&!hasRenownPerk('rareCraft'))rarity='common';
     let pool=equipment.filter(i=>i.rarity===rarity);if(!pool.length)pool=equipment.filter(i=>i.rarity==='common');return pick(pool);
   }
 
@@ -750,25 +897,26 @@
   function takeRelic(id) {
     const relic=relics.find(r=>r.id===id); if(!relic)return;
     expedition.relics.push(id);
-    if(id==='whetstone') expedition.party.forEach(h=>h.power+=3);
+    if(id==='whetstone') expedition.party.forEach(h=>h.physicalPower+=3);
     if(id==='oak') expedition.party.forEach(h=>{h.maxHp+=12;h.hp+=12;});
     if(id==='quicksilver') expedition.party.forEach(h=>{h.maxSp+=1;h.sp=Math.min(h.maxSp,h.sp+1);});
     if(id==='ember') expedition.party.filter(h=>h.hp>0).forEach(h=>h.hp=Math.min(h.maxHp,h.hp+18));
     tone(690,.12); toast(`獲得遺物：${relic.name}`); setTimeout(showNode,320);
   }
   function finishExpedition() {
-    const c=expedition.contract; const total=c.gold+expedition.earned; let earnedRenown=Math.round(c.renown*(expedition.modifier==='cruel'?1.25:1));if(c.crisis&&state.facilities.archive>=3)earnedRenown=Math.round(earnedRenown*1.2); state.gold+=total; state.renown+=earnedRenown; state.inventory.push(...expedition.lootItems);expedition.lootItems.forEach(id=>discover('equipment',id));const tradeBonus=currentSeason().id==='trade'?2:0,scrapGain=2+c.risk+tradeBonus,clothGain=1+c.risk+tradeBonus,dustGain=c.risk;state.materials.scrap+=scrapGain;state.materials.cloth+=clothGain;state.materials.skillDust+=dustGain;
-    const region=state.regions[c.zone];region.cleared++;region.threat=clamp(region.threat-(c.crisis?38+(state.facilities.scouts>=3?8:0):18+c.risk*3),0,100);progressDirective('contract');progressDaily('contract');if(expedition.lootItems.length)progressDirective('gear',expedition.lootItems.length);
-    let trophy='',coreGain=0,markGain=0;if(c.crisis||c.risk===3){state.materials.bossCore++;state.materials.skillCore++;coreGain=1;markGain=1;const first=!state.trophies[c.zone];state.trophies[c.zone]=(state.trophies[c.zone]||0)+1;region.crises+=(c.crisis?1:0);trophy=`獲得「${c.zone}戰證」、鍛造核心與奧義印記`;if(first){const bonus=30+(state.facilities.archive||0)*10;state.gold+=bonus;trophy+=`，首勝陳列獎勵 ${bonus} 金幣`;}addChronicle(`遠征隊平定「${c.title}」，帶回第 ${state.trophies[c.zone]} 枚${c.zone}戰證。`);}
+    const c=expedition.contract; const total=c.gold+expedition.earned; let earnedRenown=Math.round(c.renown*(expedition.modifier==='cruel'?1.25:1));if(c.crisis&&hasRenownPerk('legacy'))earnedRenown=Math.round(earnedRenown*1.2); state.gold+=total; state.renown+=earnedRenown; state.inventory.push(...expedition.lootItems);expedition.lootItems.forEach(id=>discover('equipment',id));const tradeBonus=currentSeason().id==='trade'?2:0,scrapGain=2+c.risk+tradeBonus,clothGain=1+c.risk+tradeBonus,dustGain=c.risk;state.materials.scrap+=scrapGain;state.materials.cloth+=clothGain;state.materials.skillDust+=dustGain;
+    const region=state.regions[c.zone];region.cleared++;region.threat=clamp(region.threat-(c.crisis?38:18+c.risk*3),0,100);progressDirective('contract');progressDaily('contract');if(expedition.lootItems.length)progressDirective('gear',expedition.lootItems.length);
+    let trophy='',coreGain=0,markGain=0;if(c.crisis||c.risk===3){state.materials.bossCore++;state.materials.skillCore++;coreGain=1;markGain=1;const first=!state.trophies[c.zone];state.trophies[c.zone]=(state.trophies[c.zone]||0)+1;region.crises+=(c.crisis?1:0);trophy=`獲得「${c.zone}戰證」、鍛造核心與奧義印記`;if(first){const bonus=30+(hasRenownPerk('legacy')?30:0);state.gold+=bonus;trophy+=`，首勝陳列獎勵 ${bonus} 金幣`;}addChronicle(`遠征隊平定「${c.title}」，帶回第 ${state.trophies[c.zone]} 枚${c.zone}戰證。`);}
     if(c.crisis)progressDirective('crisis');else addChronicle(`完成${c.zone}契約「${c.title}」。`);
     advanceDay();const newInjuries=applyInjuries(false); state.stats.completed++;
-    let crystalGain=0;state.heroes.filter(h=>state.activeParty.includes(h.id)).forEach(h=>{h.xp+=18+c.risk*8;while(h.xp>=h.level*45){h.xp-=h.level*45;h.level++;const gain=1+(state.facilities.training>=2?1:0);state.materials.growthCrystal+=gain;crystalGain+=gain;}});syncRenownHeroes();
+    const completedParty=state.activeParty.filter(id=>state.heroes.some(h=>h.id===id&&h.owned));for(let i=0;i<completedParty.length;i++)for(let j=i+1;j<completedParty.length;j++){const key=bondKey(completedParty[i],completedParty[j]);state.bonds[key]=(state.bonds[key]||0)+1;}
+    let crystalGain=0;state.heroes.filter(h=>state.activeParty.includes(h.id)).forEach(h=>{h.xp+=18+c.risk*8;while(h.xp>=h.level*45&&h.level<breakthroughCap(h)){h.xp-=h.level*45;h.level++;const gain=1+(hasRenownPerk('mentor')?1:0);state.materials.growthCrystal+=gain;crystalGain+=gain;}});syncRenownHeroes();
     state.contracts=[]; state.shopStock=[]; checkAchievements(); save();
     const lootNames=expedition.lootItems.map(id=>equipment.find(i=>i.id===id)?.name).filter(Boolean);
     $('eventStage').innerHTML=`<article class="event-card"><div class="event-symbol">✓</div><span class="eyebrow">CONTRACT COMPLETE</span><h2>${c.crisis?'危機解除':'遠征歸來'}</h2><p>${lootNames.length?`本次帶回裝備：${lootNames.join('、')}。`:'沒有發現可用裝備。'} 裝備素材：鐵屑 ${scrapGain}、韌布 ${clothGain}${coreGain?`、鍛造核心 ${coreGain}`:''}；技能素材：戰技殘頁 ${dustGain}${markGain?`、奧義印記 ${markGain}`:''}${crystalGain?`；能力素材：能力結晶 ${crystalGain}`:''}。${newInjuries.length?` ${newInjuries.join('、')}帶傷歸隊。`:' 隊員均平安歸隊。'}${trophy?` ${trophy}。`:''}</p><div class="event-options"><span><b>${total}</b> 金幣</span><span><b>${earnedRenown}</b> 聲望</span><span><b>${lootNames.length}</b> 件裝備</span><button class="action-btn" id="returnBtn">返回公會</button></div></article>`;
     $('returnBtn').addEventListener('click', returnGuild); tone(740,.18);
   }
-  function advanceDay(){state.day++;const season=currentSeason();Object.entries(state.regions).forEach(([zone,r])=>{let growth=rand(3,7);if(season.id==='beast'&&(zone==='狼煙丘陵'||zone==='北風林線'))growth+=4;r.threat=clamp(r.threat+growth,0,100);});state.heroes.forEach(h=>{if(h.injury){h.injury.days--;if(h.injury.days<=0)h.injury=null;}});state.contracts=[];state.shopStock=[];ensureDirective();ensureDaily();}
+  function advanceDay(){state.day++;const season=currentSeason();Object.entries(state.regions).forEach(([zone,r])=>{let growth=rand(3,7);if(season.id==='beast'&&(zone==='狼煙丘陵'||zone==='北風林線'))growth+=4;r.threat=clamp(r.threat+growth,0,100);});state.heroes.forEach(h=>{if(h.injury){h.injury.days--;if(h.injury.days<=0)h.injury=null;}});state.contracts=[];state.shopStock=[];state.marketRefreshes=0;ensureDirective();ensureDaily();}
   function applyInjuries(severe){const hurt=[];expedition.party.forEach(p=>{const hero=state.heroes.find(h=>h.id===p.id);const chance=severe ? .7 : (p.hp/p.maxHp<.3 ? .38 : 0);if(hero&&!hero.injury&&Math.random()<chance){hero.injury={...pick(injuries)};hurt.push(hero.name);}});return hurt;}
   function loseExpedition(){advanceDay();const hurt=applyInjuries(true);save();$('eventStage').innerHTML=`<article class="event-card"><div class="event-symbol">×</div><span class="eyebrow">EXPEDITION FAILED</span><h2>隊伍被迫撤退</h2><p>搜救隊在天亮前找到了眾人。${hurt.length?`${hurt.join('、')}受到傷勢，需要休養。`:'所幸無人留下長期傷勢。'}</p><button class="action-btn" id="returnBtn">返回公會</button></article>`;$('returnBtn').addEventListener('click',returnGuild);}
   function returnGuild(){expedition=null;combat=null;$('expeditionView').classList.remove('active');$('guildView').classList.add('active');renderGuild();window.scrollTo(0,0);}
@@ -784,7 +932,7 @@
 
   function openCodex(){
     state.inventory.forEach(id=>discover('equipment',id));state.heroes.forEach(h=>Object.values(h.equipment||{}).filter(Boolean).forEach(id=>discover('equipment',id)));save();
-    const enemyNotes={wolf:'成群時會發動夾擊，優先減少數量。',bandit:'會使用破盾斬，護盾隊伍需優先打斷。',shaman:'能為全體敵人施加護盾。',spider:'毒牙會留下持續傷害。',wisp:'會治療生命最低的敵人。',cultist:'儀式會永久提升同伴威力。',golem:'替受傷同伴架設岩盾。',warden:'半血後進入第二階段並橫掃全隊。'};
+    const enemyNotes={wolf:'成群時會發動夾擊，優先減少數量。',bandit:'會使用破盾斬，護盾隊伍需優先打斷。',shaman:'能為全體敵人施加護盾。',spider:'毒牙會留下持續傷害。',wisp:'會治療生命最低的敵人。',cultist:'儀式會永久提升同伴威力。',golem:'替受傷同伴架設岩盾。',harpy:'尖嘯會削減全隊技能點，適合優先破勢。',hexer:'詛咒會使全隊承受傷害提高 25%。',leech:'受傷後會使用汲血攻擊恢復生命。',sentinel:'頻繁替生命最低的同伴施加高額護盾。',warden:'半血後進入第二階段並橫掃全隊。'};
     const zones=[...new Set(contractSeeds.map(c=>c.zone))];
     $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent='邊境探索圖鑑';
     $('modalBody').innerHTML=`<div class="codex-progress"><b>${state.discovered.enemies.length}/${Object.keys(enemyTemplates).length}</b> 敵人　<b>${state.discovered.equipment.length}/${equipment.length}</b> 裝備　<b>${state.discovered.zones.length}/${zones.length}</b> 區域</div><span class="eyebrow">REGIONS</span><div class="codex-grid compact-codex">${zones.map(z=>`<article class="codex-entry ${state.discovered.zones.includes(z)?'':'unknown'}"><b>${state.discovered.zones.includes(z)?z:'未知區域'}</b></article>`).join('')}</div><span class="eyebrow">ENEMIES</span><div class="codex-grid">${Object.entries(enemyTemplates).map(([id,e])=>{const seen=state.discovered.enemies.includes(id);return `<article class="codex-entry ${seen?'':'unknown'}"><i>${seen?e.icon:'?'}</i><b>${seen?e.name:'未知敵人'}</b><small>${seen?enemyNotes[id]:'在遠征中遭遇後解鎖'}</small></article>`;}).join('')}</div><span class="eyebrow">EQUIPMENT</span><div class="codex-grid">${equipment.map(i=>{const seen=state.discovered.equipment.includes(i.id);return `<article class="codex-entry ${seen?`rarity-${i.rarity}`:'unknown'}"><b>${seen?i.name:'未知裝備'}</b><small>${seen?`${slotName(i.slot)} · ${i.desc}`:'購買或帶回公會後解鎖'}</small></article>`;}).join('')}</div>`;
@@ -808,7 +956,7 @@
   function resetSave(){if(!confirm('確定刪除目前進度？此動作無法復原，建議先匯出備份。'))return;if(!confirm('再次確認：要從第 1 日重新開始嗎？'))return;localStorage.removeItem(SAVE_KEY);location.reload();}
 
   function openIntro(){ $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalBody').innerHTML='<p>《灰燼公會》沒有固定主線。你決定今天值得冒什麼風險，也決定邊境會變成什麼模樣。</p><ul><li>敵人頭上的標記會預告下一個行動；累積「破勢」可打斷敵人。</li><li>每日任務、季節與公會方針會定期輪替。</li><li>角色會隨聲望主動加入；升級取得能力結晶，可自由培養。</li><li>裝備、技能與能力使用各自獨立的素材。</li><li>從「隊伍」調整三名成員與實際出戰順序。</li><li>遠征失敗不會刪除進度；整備後再次出發。</li></ul><button class="action-btn" id="introOk">查看邊境局勢</button>';$('introOk').addEventListener('click',closeModal); }
-  function closeModal(){ $('modal').classList.remove('open');$('modal').setAttribute('aria-hidden','true');state.seenIntro=true;save(); }
+  function closeModal(){ $('modal').classList.remove('open','training-modal','hero-panel-modal');$('modal').setAttribute('aria-hidden','true');state.seenIntro=true;save(); }
 
   $('refreshBtn').addEventListener('click',()=>{if(state.gold<10)return toast('金幣不足');state.gold-=10;generateContracts();renderGuild();toast('新的委託已張貼');});
   $('retreatBtn').addEventListener('click',()=>{if(confirm('確定放棄本次遠征？已取得的臨時戰利品將會失去。')){advanceDay();applyInjuries(false);save();returnGuild();}});
