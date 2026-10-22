@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ashen-guild-v13-boss-patterns';
+const CACHE_NAME = 'ashen-guild-v17-status-auras';
 const APP_SHELL = [
   './',
   './index.html',

@@ -26,7 +26,19 @@
     { id: 'quicksilver', symbol: 'Q', name: '水銀沙漏', desc: '全隊技能點上限 +1，立刻恢復 1 點。' },
     { id: 'ward', symbol: '△', name: '守夜者徽記', desc: '每場戰鬥開始時，全隊獲得 8 護盾。' },
     { id: 'ember', symbol: '*', name: '不滅火種', desc: '全隊恢復 18 生命，之後的治療效果提高。' },
-    { id: 'hunter', symbol: 'X', name: '獵首契印', desc: '對破勢累積過半的敵人造成更多傷害。' }
+    { id: 'hunter', symbol: 'X', name: '獵首契印', desc: '對破勢累積過半的敵人造成更多傷害。' },
+    { id:'arcane',symbol:'◇',name:'裂紋魔晶',desc:'本次遠征全隊魔法威力 +3。' },
+    { id:'breakerSigil',symbol:'⊕',name:'碎城刻印',desc:'所有攻擊額外造成 7 點破勢。' },
+    { id:'bossEye',symbol:'◉',name:'弒王之眼',desc:'對區域 Boss 與魔王造成的傷害提高 20%。' },
+    { id:'bloodRose',symbol:'✥',name:'血棘玫瑰',desc:'生命低於一半時，造成的傷害提高 25%。' },
+    { id:'warDrum',symbol:'Ⅱ',name:'殘軍戰鼓',desc:'每場戰鬥前兩回合，全隊物理與魔法威力 +2。' },
+    { id:'echoBell',symbol:'♢',name:'回響銀鈴',desc:'每次施放技能額外獲得 8 點絕招氣勢。' },
+    { id:'tacticianSeal',symbol:'□',name:'軍略蠟印',desc:'每名角色每場第一個付費技能少消耗 1 點。' },
+    { id:'thornCrown',symbol:'♜',name:'荊王殘冠',desc:'角色受到直接攻擊時，對攻擊者造成 4 點反傷。' },
+    { id:'scavengerLantern',symbol:'☼',name:'拾魂燈',desc:'擊倒敵人時，全隊恢復 3 生命。' },
+    { id:'prism',symbol:'△',name:'破綻稜鏡',desc:'每名敵人首次受到攻擊時，額外附加 1 回合易傷。' },
+    { id:'bindingThread',symbol:'∞',name:'縛咒紅線',desc:'我方施加的易傷、燃燒、致盲延長 1 回合。' },
+    { id:'sanctuary',symbol:'✚',name:'巡禮聖杯',desc:'每場戰鬥開始時，全隊恢復 8 生命並獲得 6 護盾。' }
   ];
 
   const achievementDefs = [
@@ -352,6 +364,14 @@
   function startBgm(){if(bgmTimer||!audioOn)return;bgmPulse();bgmTimer=setInterval(bgmPulse,3000);}
   function stopBgm(){if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;}}
   function toast(message) { $('toast').textContent = message; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2200); }
+  const reducedMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  function vibrate(pattern){if(!reducedMotion()&&navigator.vibrate)navigator.vibrate(pattern);}
+  function fxLayer(){let layer=$('fxLayer');if(!layer){layer=document.createElement('div');layer.id='fxLayer';layer.className='fx-layer';layer.setAttribute('aria-hidden','true');document.body.appendChild(layer);}return layer;}
+  function floatingFx(selector,text,kind='damage'){if(reducedMotion())return;const target=document.querySelector(selector),rect=target?.getBoundingClientRect();if(!rect)return;const el=document.createElement('b');el.className=`float-fx ${kind}`;el.textContent=text;el.style.left=`${rect.left+rect.width/2}px`;el.style.top=`${rect.top+rect.height*.3}px`;fxLayer().appendChild(el);setTimeout(()=>el.remove(),900);}
+  function burstFx(kind,label='',hero=null){const stage=$('eventStage');if(!stage)return;stage.classList.remove('fx-physical','fx-magic','fx-heal','fx-buff','fx-debuff','fx-ultimate','fx-boss');void stage.offsetWidth;stage.classList.add(`fx-${kind}`);setTimeout(()=>stage.classList.remove(`fx-${kind}`),700);if(reducedMotion())return;const burst=document.createElement('div');burst.className=`screen-fx ${kind}`;burst.innerHTML=`${kind==='ultimate'&&hero?`<img src="${portraitPath(hero.id,'half')}" alt="">`:''}<i></i><i></i><i></i><i></i><i></i><strong>${label}</strong>`;if(hero)burst.style.setProperty('--hero-color',hero.color);fxLayer().appendChild(burst);setTimeout(()=>burst.remove(),kind==='ultimate'?1250:750);}
+  function localFx(selector,kind,label,ultimate=false){if(reducedMotion())return;const target=document.querySelector(selector);if(!target)return;target.querySelector('.local-skill-fx')?.remove();const fx=document.createElement('div');fx.className=`local-skill-fx ${kind}${ultimate?' ultimate':''}`;fx.innerHTML='<i></i><i></i><i></i><strong>'+label+'</strong>';target.appendChild(fx);setTimeout(()=>fx.remove(),ultimate?1000:680);}
+  function skillFx(skill,hero,target){const kind=skill.heal||skill.healAll||skill.regenAll||skill.reviveAll?'heal':skill.damage?(skill.damageType==='magic'?'magic':'physical'):skill.vulnerable||skill.burn||skill.blind||skill.weaken||skill.armorBreak?'debuff':'buff',ultimate=!!skill.isUltimate,group=['enemies','allies'].includes(skill.target);let selector='';if(skill.target==='enemy'&&target)selector=`[data-enemy="${target.id}"]`;else if(skill.target==='self')selector=`[data-party-id="${hero.id}"]`;else if(skill.target==='lowest'){const ally=[...expedition.party].filter(h=>h.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];if(ally)selector=`[data-party-id="${ally.id}"]`;}else if(skill.target==='enemies')selector='.enemy-zone';else if(skill.target==='allies')selector='.party-strip';if(ultimate&&group)burstFx('ultimate',skill.name,hero);if(selector)localFx(selector,kind,skill.name,ultimate);vibrate(ultimate?[25,35,55]:kind==='physical'?[18]:kind==='magic'?[10,20,10]:[8]);}
+  function clickRipple(event){const button=event.target.closest('button');if(!button||button.disabled||reducedMotion())return;const rect=button.getBoundingClientRect(),r=document.createElement('span');r.className='click-ripple';r.style.left=`${event.clientX-rect.left}px`;r.style.top=`${event.clientY-rect.top}px`;button.appendChild(r);setTimeout(()=>r.remove(),550);}
 
   function rankInfo() { return [...ranks].reverse().find(r => state.renown >= r.min); }
   function specInfo(hero) { return specializations[hero.id]?.find(s => s.id === hero.specialization); }
@@ -594,7 +614,7 @@
     if(evo==='tactics'){if(category==='single')skill.vulnerable=Math.max(skill.vulnerable||0,1);else if(category==='aoe')skill.weaken=(skill.weaken||0)+1;else if(category==='sustain')skill.cleanseAll=true;else if(category==='buff')skill.buffTurns=(skill.buffTurns||2)+1;else {let applied=false;['vulnerable','burn','blind'].forEach(k=>{if(skill[k]){skill[k]++;applied=true;}});if(skill.weaken){skill.weaken++;applied=true;}if(skill.armorBreak){skill.armorBreak++;applied=true;}if(!applied)skill.restoreSelf=(skill.restoreSelf||0)+1;}}
     if(skill.shield)skill.shield+=heroEffect(hero,'shieldBoost')+(hasTrait(hero,'branLegacy')?12:0);if(skill.guardAll)skill.guardAll+=heroEffect(hero,'guardBoost');if(skill.counter)skill.counter+=heroEffect(hero,'counterBoost')+(hasTrait(hero,'branLegacy')?10:0);
     if(skill.stagger)skill.stagger=Math.round(skill.stagger*(1+heroEffect(hero,'staggerRate'))+heroEffect(hero,'staggerFlat'));if(skill.weaken)skill.weaken+=heroEffect(hero,'weakenBoost');
-    if(skill.vulnerable)skill.vulnerable+=heroEffect(hero,'debuffTurns');if(skill.burn)skill.burn+=heroEffect(hero,'burnTurns');if(skill.blind)skill.blind+=heroEffect(hero,'blindTurns');if(skill.armorBreak)skill.armorBreak+=heroEffect(hero,'armorBreakBoost');
+    if(skill.vulnerable)skill.vulnerable+=heroEffect(hero,'debuffTurns')+(expedition?.relics?.includes('bindingThread')?1:0);if(skill.burn)skill.burn+=heroEffect(hero,'burnTurns')+(expedition?.relics?.includes('bindingThread')?1:0);if(skill.blind)skill.blind+=heroEffect(hero,'blindTurns')+(expedition?.relics?.includes('bindingThread')?1:0);if(skill.armorBreak)skill.armorBreak+=heroEffect(hero,'armorBreakBoost');
     if(skill.powerAll)skill.powerAll+=heroEffect(hero,'buffPower');if(skill.buffTurns)skill.buffTurns+=heroEffect(hero,'buffTurns')+(hasTrait(hero,'torLegacy')?1:0);if(skill.restoreAll)skill.restoreAll+=heroEffect(hero,'restoreBoost');if(skill.regenAll)skill.regenAll+=heroEffect(hero,'regenBoost');
     skill.healRate=heroEffect(hero,'healRate')+(hasTrait(hero,'senaLegacy')?.2:0)+(hasTrait(hero,'aldaLegacy')?.25:0);if(hasTrait(hero,'aldaLegacy')&&skill.shield)skill.shield=Math.round(skill.shield*1.25);skill.burnDamage=7+heroEffect(hero,'burnDamage')+(hasTrait(hero,'cinder')?2:0)+(hasTrait(hero,'senaLegacy')?6:0);return skill;
   }
@@ -731,7 +751,8 @@
     expedition.party.forEach(h => {
       const affixShield=Object.values(h.equipment||{}).reduce((n,id)=>n+(gearAffix(id)?.startShield||0),0),oathShield=setCounts(h).oath>=2?8:0;
       h.shield = (expedition.relics.includes('ward') ? 8 : 0)+(hasTrait(h,'warding')?10:0)+affixShield+oathShield;
-      h.focusUsed=false; h.evasionUsed=false;h.counter=0;h.dodge=false;h.regenTurns=0;
+      if(expedition.relics.includes('sanctuary')){h.hp=Math.min(h.maxHp,h.hp+8);h.shield+=6;}
+      h.focusUsed=false;h.relicFreeUsed=false;h.evasionUsed=false;h.counter=0;h.dodge=false;h.regenTurns=0;
       if((h.breakthrough||0)>=2)h.ultCharge=Math.max(h.ultCharge||0,25);
       if (expedition.modifier === 'tailwind') h.sp = Math.min(h.maxSp, h.sp + 1);
       if (h.specialization === 'vanguard') h.sp = Math.min(h.maxSp, h.sp + 1);
@@ -739,7 +760,9 @@
     if(expedition.party.some(h=>hasTrait(h,'command'))) expedition.party.forEach(h=>h.sp=Math.min(h.maxSp,h.sp+1));
     if(expedition.party.some(h=>hasTrait(h,'firstcommand')))expedition.party.forEach(h=>{h.powerBuff=Math.max(h.powerBuff||0,1);h.powerBuffTurns=Math.max(h.powerBuffTurns||0,1);});
     if(expedition.party.some(h=>hasTrait(h,'torLegacy')))expedition.party.forEach(h=>{h.powerBuff=Math.max(h.powerBuff||0,2);h.powerBuffTurns=Math.max(h.powerBuffTurns||0,2);});
+    if(expedition.relics.includes('warDrum'))expedition.party.forEach(h=>{h.powerBuff=Math.max(h.powerBuff||0,2);h.powerBuffTurns=Math.max(h.powerBuffTurns||0,2);});
     combat = { enemies, heroIndex: 0, round: 1, encounter, heroTurns:0, log: [encounter==='boss'?'區域首領現身——這不是能輕忽的戰鬥。':encounter==='elite'?'你們循跡找到精英敵人。':'遭遇敵人。先觀察他們的行動意圖。'], locked: false };
+    if(encounter==='boss'){burstFx('boss',enemies[0]?.name||'區域首領');vibrate([35,45,35]);}
     planIntents(); beginHeroTurn();
   }
 
@@ -759,7 +782,7 @@
     combat.enemies.filter(e => e.hp > 0).forEach(e => {
       if(e.affix?.id==='regenerator'&&e.hp<e.maxHp)e.hp=Math.min(e.maxHp,e.hp+6);
       if(e.affix?.id==='armored')e.shield+=8;
-      if(e.boss&&!e.phase2&&e.hp<=e.maxHp*.5){e.phase2=true;combat.log.push(`${e.name}進入第二階段：攻擊模式改變！`);}
+      if(e.boss&&!e.phase2&&e.hp<=e.maxHp*.5){e.phase2=true;combat.log.push(`${e.name}進入第二階段：攻擊模式改變！`);burstFx('boss',`${e.name} · 第二階段`);vibrate([30,25,30,25,60]);}
       const plannedBoss=e.boss?bossIntent(e):null;
       if (e.stunned > 0) e.intent = { type: 'stunned', label: '破勢：無法行動' };
       else if(plannedBoss)e.intent=plannedBoss;
@@ -795,7 +818,8 @@
     document.querySelectorAll('[data-enemy]').forEach(b => b.addEventListener('click', () => { if (pendingSkill) executeSkill(pendingSkill, combat.enemies.find(e => e.id === b.dataset.enemy)); }));
   }
 
-  function statusChip(kind,name,value,detail){return `<span class="status-chip ${kind}" title="${detail}"><b>${name}</b>${value?` ${value}`:''}</span>`;}
+  function statusChip(kind,name,value,detail){const safe=String(detail).replace(/"/g,'&quot;');return `<span class="status-chip ${kind}" tabindex="0" role="note" aria-label="${name}：${safe}" data-tooltip="${safe}"><b>${name}</b>${value?` ${value}`:''}</span>`;}
+  function persistentStateClasses(unit){return [unit.shield>0?'has-shield':'',unit.powerBuffTurns>0?'has-power':'',unit.guardBuffTurns>0?'has-guard':'',unit.regenTurns>0?'has-regen':'',unit.taunt?'has-taunt':'',unit.dodge?'has-dodge':'',unit.burn>0?'has-burn':'',unit.poison>0?'has-poison':'',unit.frail>0||unit.vulnerable>0||unit.blind>0||unit.weaken>0||unit.armorBreak>0?'has-debuff':'',unit.phase2?'has-phase':''].filter(Boolean).join(' ');}
   function statusHtml(unit,side){
     const buffs=[],debuffs=[];
     if(unit.shield>0)buffs.push(statusChip('buff','護盾',unit.shield,`優先承受 ${unit.shield} 點傷害`));
@@ -822,10 +846,10 @@
   function enemyHtml(e) {
     const hp = clamp(e.hp/e.maxHp*100,0,100), st = clamp(e.stagger/e.staggerMax*100,0,100);
     const intent=difficulties[state.difficulty]?.conceal?e.intent.label.replace(/\d+/g,'?'):e.intent.label;
-    return `<article class="unit ${e.hp<=0?'dead':''} ${pendingSkill?.target==='enemy'&&e.hp>0?'targetable':''}" data-enemy="${e.id}" style="--accent:${e.color}"><span class="intent">${e.hp>0?intent:'倒下'}</span><div class="unit-icon">${e.icon}</div><h3>${e.name}${e.affix?` <em class="elite-tag">${e.affix.name}</em>`:''}${e.phase2?' <em class="phase-tag">Ⅱ</em>':''}</h3>${e.affix?`<small class="enemy-trait">${e.affix.desc}</small>`:''}<div class="numbers"><span>HP ${Math.max(0,e.hp)}/${e.maxHp}</span><span>${e.shield?`盾 ${e.shield}`:''}</span></div><div class="hp-track"><i style="width:${hp}%;background:var(--red)"></i></div><div class="numbers"><span>物防 ${Math.max(0,e.armor-(e.armorBreak||0))}</span><span>魔防 ${e.magicResist||0}</span></div>${statusHtml(e,'enemy')}<div class="numbers"><span>破勢</span><span>${e.stagger}/${e.staggerMax}</span></div><div class="stagger-track"><i style="width:${st}%"></i></div></article>`;
+    return `<article class="unit ${persistentStateClasses(e)} ${e.hp<=0?'dead':''} ${pendingSkill?.target==='enemy'&&e.hp>0?'targetable':''}" data-enemy="${e.id}" style="--accent:${e.color}"><span class="intent">${e.hp>0?intent:'倒下'}</span><div class="unit-icon">${e.icon}</div><h3>${e.name}${e.affix?` <em class="elite-tag">${e.affix.name}</em>`:''}${e.phase2?' <em class="phase-tag">Ⅱ</em>':''}</h3>${e.affix?`<small class="enemy-trait">${e.affix.desc}</small>`:''}<div class="numbers"><span>HP ${Math.max(0,e.hp)}/${e.maxHp}</span><span>${e.shield?`盾 ${e.shield}`:''}</span></div><div class="hp-track"><i style="width:${hp}%;background:var(--red)"></i></div><div class="numbers"><span>物防 ${Math.max(0,e.armor-(e.armorBreak||0))}</span><span>魔防 ${e.magicResist||0}</span></div>${statusHtml(e,'enemy')}<div class="numbers"><span>破勢</span><span>${e.stagger}/${e.staggerMax}</span></div><div class="stagger-track"><i style="width:${st}%"></i></div></article>`;
   }
-  function partyHtml(h,i) { const hp=clamp(h.hp/h.maxHp*100,0,100); return `<article class="party-unit ${i===combat.heroIndex?'active':''} ${h.hp<=0?'dead':''}"><div class="combat-portrait" style="--accent:${h.color}"><img src="${portraitPath(h.id)}" alt="${h.name}頭像"></div><div class="party-unit-info"><h4 style="color:${h.color}">${h.name} · ${h.job}</h4><div class="numbers"><span>HP ${Math.max(0,h.hp)}/${h.maxHp}</span><span>技能 ${h.sp}/${h.maxSp}</span></div><div class="hp-track"><i style="width:${hp}%;background:${h.color}"></i></div>${statusHtml(h,'party')}<div class="ult-track" title="絕招氣勢 ${h.ultCharge}/100"><i style="width:${h.ultCharge}%"></i></div></div></article>`; }
-  function skillCost(hero,skill){return Math.max(0,skill.cost-(hasTrait(hero,'focus')&&!hero.focusUsed&&skill.cost>0?1:0));}
+  function partyHtml(h,i) { const hp=clamp(h.hp/h.maxHp*100,0,100); return `<article class="party-unit ${persistentStateClasses(h)} ${i===combat.heroIndex?'active':''} ${h.hp<=0?'dead':''}" data-party-id="${h.id}"><div class="combat-portrait" style="--accent:${h.color}"><img src="${portraitPath(h.id)}" alt="${h.name}頭像"></div><div class="party-unit-info"><h4 style="color:${h.color}">${h.name} · ${h.job}</h4><div class="numbers"><span>HP ${Math.max(0,h.hp)}/${h.maxHp}</span><span>技能 ${h.sp}/${h.maxSp}</span></div><div class="hp-track"><i style="width:${hp}%;background:${h.color}"></i></div>${statusHtml(h,'party')}<div class="ult-track" title="絕招氣勢 ${h.ultCharge}/100"><i style="width:${h.ultCharge}%"></i></div></div></article>`; }
+  function skillCost(hero,skill){const focus=hasTrait(hero,'focus')&&!hero.focusUsed&&skill.cost>0?1:0,relic=expedition.relics.includes('tacticianSeal')&&!hero.relicFreeUsed&&skill.cost>0?1:0;return Math.max(0,skill.cost-focus-relic);}
   function skillHtml(s) { const h=expedition.party[combat.heroIndex],cost=skillCost(h,s); return `<button class="skill" data-skill="${s.id}" ${combat.locked||h.sp<cost?'disabled':''}><b>${s.name}</b><span class="skill-details">${skillDetailText(h,s)}</span><small>${cost ? `${cost} 技能點` : '基礎行動'}${cost<s.cost?' · 專注減免':''}${s.rank?` · 強化 ${s.rank}`:''}</small></button>`; }
   function ultimateHtml(hero){const ultimate=trainedSkill(hero,hero.ultimate);return `<button class="skill ultimate-skill" data-ultimate ${combat.locked||hero.ultCharge<100?'disabled':''}><b>✦ ${hero.ultimate.name}</b><span class="skill-details">${skillDetailText(hero,ultimate)}</span><small>${hero.ultCharge>=100?'氣勢已滿 · 可發動':`氣勢 ${hero.ultCharge}/100`}</small></button>`;}
 
@@ -837,7 +861,8 @@
   function chooseUltimate(){const hero=expedition.party[combat.heroIndex];if(combat.locked||hero.ultCharge<100)return;progressDaily('ultimate');save();const skill={...trainedSkill(hero,hero.ultimate),isUltimate:true,cost:0};if(skill.target==='enemy'){pendingSkill=skill;tone(820,.12);renderCombat();}else executeSkill(skill);}
 
   function executeSkill(skill, target) {
-    if (combat.locked) return; const hero = expedition.party[combat.heroIndex];const cost=skill.isUltimate?0:skillCost(hero,skill);if(skill.isUltimate)hero.ultCharge=0;else{hero.sp-=cost;if(cost<skill.cost)hero.focusUsed=true;}combat.locked = true;
+    if (combat.locked) return; const hero = expedition.party[combat.heroIndex];const cost=skill.isUltimate?0:skillCost(hero,skill);if(skill.isUltimate)hero.ultCharge=0;else{hero.sp-=cost;if(cost<skill.cost){if(hasTrait(hero,'focus')&&!hero.focusUsed)hero.focusUsed=true;else if(expedition.relics.includes('tacticianSeal'))hero.relicFreeUsed=true;}}combat.locked = true;
+    skillFx(skill,hero,target);
     const targets = skill.target === 'enemies' ? combat.enemies.filter(e=>e.hp>0) : target ? [target] : [];
     targets.forEach(e => {if(skill.damage)damageEnemy(hero,e,skill);else{if(skill.vulnerable)e.vulnerable=Math.max(e.vulnerable,skill.vulnerable);if(skill.blind)e.blind=Math.max(e.blind,skill.blind);if(skill.armorBreak){e.armorBreak=(e.armorBreak||0)+skill.armorBreak;}if(skill.weaken){e.power=Math.max(1,e.power-skill.weaken);e.weaken=(e.weaken||0)+skill.weaken;}if(skill.stagger){e.stagger+=skill.stagger;if(e.stagger>=e.staggerMax){e.stagger=0;e.stunned=1;}}}});
     if (skill.shield && skill.target === 'allies') expedition.party.filter(h=>h.hp>0).forEach(h=>h.shield+=skill.shield+(hero.specialization==='bulwark'?5:0));
@@ -851,13 +876,13 @@
     if(skill.guardAll)expedition.party.filter(h=>h.hp>0).forEach(h=>{h.guardBuff=Math.max(h.guardBuff||0,skill.guardAll);h.guardBuffTurns=Math.max(h.guardBuffTurns||0,skill.buffTurns||2);});
     const healBoost = (expedition.relics.includes('ember') ? 1.35 : 1) * (hero.specialization==='hearth'?1.3:1) * (hero.specialization==='saint'?1.25:1) * (1+(skill.healRate||0));
     if(skill.reviveAll)expedition.party.filter(h=>h.hp<=0).forEach(h=>{h.hp=Math.max(1,Math.round(h.maxHp*skill.reviveAll));combat.log.push(`${h.name}重新站了起來！`);});
-    if (skill.heal) { const ally=[...expedition.party].filter(h=>h.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; const amount=Math.min(Math.round(skill.heal*healBoost),ally.maxHp-ally.hp); ally.hp+=amount; combat.log.push(`${hero.name}使${ally.name}恢復 ${amount} 生命。`); }
-    if (skill.healAll) expedition.party.filter(h=>h.hp>0).forEach(h=>h.hp=Math.min(h.maxHp,h.hp+Math.round(skill.healAll*healBoost)));
+    if (skill.heal) { const ally=[...expedition.party].filter(h=>h.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; const amount=Math.min(Math.round(skill.heal*healBoost),ally.maxHp-ally.hp); ally.hp+=amount;floatingFx(`[data-party-id="${ally.id}"]`,`+${amount}`,'heal');combat.log.push(`${hero.name}使${ally.name}恢復 ${amount} 生命。`); }
+    if (skill.healAll) expedition.party.filter(h=>h.hp>0).forEach(h=>{const before=h.hp;h.hp=Math.min(h.maxHp,h.hp+Math.round(skill.healAll*healBoost));floatingFx(`[data-party-id="${h.id}"]`,`+${h.hp-before}`,'heal');});
     if(skill.cleanseAll)expedition.party.forEach(h=>h.poison=0);
     if(skill.regenAll)expedition.party.filter(h=>h.hp>0).forEach(h=>{h.regenTurns=3;h.regenAmount=skill.regenAll;});
     if((skill.heal||skill.healAll)&&hasTrait(hero,'kindle'))hero.sp=Math.min(hero.maxSp,hero.sp+1);
     if (!skill.damage) combat.log.push(`${hero.name}使用了${skill.name}。`);
-    if(!skill.isUltimate)hero.ultCharge=Math.min(100,hero.ultCharge+18);else combat.log.push(`${hero.name}發動絕招「${skill.name}」！`);
+    if(!skill.isUltimate)hero.ultCharge=Math.min(100,hero.ultCharge+18+(expedition.relics.includes('echoBell')?8:0));else combat.log.push(`${hero.name}發動絕招「${skill.name}」！`);
     tone(skill.damage ? 180 : 620, .09); pendingSkill = null;
     if(expedition.party.every(h=>h.hp<=0))return setTimeout(loseExpedition,300);
     if (combat.enemies.every(e=>e.hp<=0)) return setTimeout(winCombat, 450);
@@ -877,22 +902,25 @@
     if(enemy.hp<=enemy.maxHp*.35)specDamage*=1+heroEffect(hero,'executeDamage');
     if(hasTrait(hero,'opening')&&combat.round===1)specDamage*=1.25;
     if(hasTrait(hero,'execute')&&enemy.hp<=enemy.maxHp*.35)specDamage*=1.3;
+    if(enemy.boss&&expedition.relics.includes('bossEye'))specDamage*=1.2;
+    if(hero.hp<=hero.maxHp*.5&&expedition.relics.includes('bloodRose'))specDamage*=1.25;
     const attackPower=(skill.damageType==='magic'?hero.magicPower:hero.physicalPower)+(hero.powerBuff||0);const raw = Math.round(attackPower * skill.damage * specDamage * (.9 + Math.random()*.2)); const defense=skill.pierce?0:skill.damageType==='magic'?(enemy.magicResist||0):Math.max(0,enemy.armor-(enemy.armorBreak||0)); let dmg=Math.max(1,raw-defense);
     if (enemy.vulnerable>0) dmg=Math.round(dmg*1.35);
     if (enemy.stagger>=enemy.staggerMax*.5 && expedition.relics.includes('hunter')) dmg=Math.round(dmg*1.3);
     const absorbed = Math.min(enemy.shield, dmg); enemy.shield -= absorbed; dmg -= absorbed; enemy.hp -= dmg;
-    let stagger=skill.stagger || 4;
+    floatingFx(`[data-enemy="${enemy.id}"]`,dmg?`-${dmg}`:'BLOCK',dmg?'damage':'shield');
+    let stagger=(skill.stagger || 4)+(expedition.relics.includes('breakerSigil')?7:0);
     if(hero.specialization==='breaker') stagger=Math.round(stagger*1.25);
     if(hero.specialization==='inquisitor') stagger+=5;if(enemy.blind>0&&hasTrait(hero,'tailshot'))stagger+=8;if(enemy.vulnerable>0&&hasTrait(hero,'miraLegacy'))stagger+=8;
     if(hasTrait(hero,'resolve')&&hero.hp<=hero.maxHp*.5)stagger=Math.round(stagger*1.3);
-    enemy.stagger += stagger; if (skill.vulnerable) enemy.vulnerable=skill.vulnerable; if(skill.burn){enemy.burn=skill.burn;enemy.burnDamage=skill.burnDamage||7;}if(skill.weaken){enemy.power=Math.max(1,enemy.power-skill.weaken);enemy.weaken=(enemy.weaken||0)+skill.weaken;}
+    enemy.stagger += stagger;if(expedition.relics.includes('prism')&&!enemy.prismMarked){enemy.prismMarked=true;enemy.vulnerable=Math.max(enemy.vulnerable,1);}if (skill.vulnerable) enemy.vulnerable=skill.vulnerable; if(skill.burn){enemy.burn=skill.burn;enemy.burnDamage=skill.burnDamage||7;}if(skill.weaken){enemy.power=Math.max(1,enemy.power-skill.weaken);enemy.weaken=(enemy.weaken||0)+skill.weaken;}
     if(skill.burn&&hasTrait(hero,'wildfire')){const other=combat.enemies.find(e=>e.hp>0&&e!==enemy);if(other)other.burn=Math.max(other.burn,1);}
     combat.log.push(`${hero.name}以${skill.name}對${enemy.name}造成 ${dmg} 傷害${absorbed ? `（護盾吸收 ${absorbed}）` : ''}。`);
     if(enemy.stagger>=enemy.staggerMax&&enemy.hp>0){enemy.stagger=0;enemy.stunned=1;if(hasTrait(hero,'momentum'))hero.sp=Math.min(hero.maxSp,hero.sp+1);if(hasTrait(hero,'aftershock'))combat.enemies.filter(e=>e.hp>0&&e!==enemy).forEach(e=>{e.hp-=5;resolveEnemyDeath(e);});combat.log.push(`${enemy.name}被破勢，本輪無法行動！`);}
     resolveEnemyDeath(enemy,hero);
   }
 
-  function resolveEnemyDeath(enemy,killer){if(enemy.hp>0||enemy.affixTriggered)return;enemy.affixTriggered=true;if(killer&&hasTrait(killer,'hunt'))killer.hp=Math.min(killer.maxHp,killer.hp+4);if(killer&&hasTrait(killer,'rivenLegacy'))killer.sp=Math.min(killer.maxSp,killer.sp+2);if(enemy.affix?.id==='volatile'){expedition.party.filter(h=>h.hp>0).forEach(h=>hurtHero(h,5,true));combat.log.push(`${enemy.name}爆裂，對全隊造成 5 傷害！`);}}
+  function resolveEnemyDeath(enemy,killer){if(enemy.hp>0||enemy.affixTriggered)return;enemy.affixTriggered=true;if(killer&&hasTrait(killer,'hunt'))killer.hp=Math.min(killer.maxHp,killer.hp+4);if(killer&&hasTrait(killer,'rivenLegacy'))killer.sp=Math.min(killer.maxSp,killer.sp+2);if(expedition.relics.includes('scavengerLantern'))expedition.party.filter(h=>h.hp>0).forEach(h=>h.hp=Math.min(h.maxHp,h.hp+3));if(enemy.affix?.id==='volatile'){expedition.party.filter(h=>h.hp>0).forEach(h=>hurtHero(h,5,true));combat.log.push(`${enemy.name}爆裂，對全隊造成 5 傷害！`);}}
 
   function hurtHero(target,amount,bypassShield=false,attacker=null){
     if(target.frail>0)amount=Math.ceil(amount*1.25);
@@ -900,9 +928,11 @@
     if(target.dodge){target.dodge=false;amount=0;combat.log.push(`${target.name}完全閃避了攻擊！`);}
     else if(hasTrait(target,'evasion')&&!target.evasionUsed){target.evasionUsed=true;amount=Math.ceil(amount/2);}
     const absorbed=bypassShield?0:Math.min(target.shield,amount);target.shield-=absorbed;const damage=amount-absorbed;target.hp-=damage;
+    floatingFx(`[data-party-id="${target.id}"]`,damage?`-${damage}`:'BLOCK',damage?'damage':'shield');
     if(target.hp<=0&&hasTrait(target,'laststand')&&!target.laststandUsed){target.laststandUsed=true;target.hp=1;combat.log.push(`${target.name}的不熄羽衣阻止了致命傷！`);}
     if(damage>0)target.ultCharge=Math.min(100,target.ultCharge+12);
     if(attacker&&target.counter>0&&attacker.hp>0){attacker.hp-=target.counter;combat.log.push(`${target.name}反擊造成 ${target.counter} 傷害。`);resolveEnemyDeath(attacker);target.counter=0;}
+    if(attacker&&damage>0&&expedition.relics.includes('thornCrown')&&attacker.hp>0){attacker.hp-=4;combat.log.push(`荊王殘冠反傷 ${attacker.name} 4 點。`);resolveEnemyDeath(attacker);}
     return {damage,absorbed};
   }
 
@@ -971,8 +1001,8 @@
   }
 
   function showRelicChoice() {
-    const choices=[...relics].sort(()=>Math.random()-.5).slice(0,3);
-    $('eventStage').innerHTML=`<article class="event-card"><div class="event-symbol">◇</div><span class="eyebrow">EXPEDITION RELIC</span><h2>選擇遠征遺物</h2><p>只能帶走其中一件。效果會持續到本次遠征結束。</p><div class="relic-grid">${choices.map(r=>`<button class="relic" data-relic="${r.id}"><span class="relic-symbol">${r.symbol}</span><b>${r.name}</b><small>${r.desc}</small></button>`).join('')}</div></article>`;
+    const choices=relics.filter(r=>!expedition.relics.includes(r.id)).sort(()=>Math.random()-.5).slice(0,3);
+    $('eventStage').innerHTML=`<article class="event-card"><div class="event-symbol">◇</div><span class="eyebrow">EXPEDITION RELIC</span><h2>選擇遠征遺物</h2><p>只能帶走其中一件，且同一遠征不會重複出現。效果持續到本次遠征結束。</p><div class="relic-grid">${choices.map(r=>`<button class="relic" data-relic="${r.id}"><span class="relic-symbol">${r.symbol}</span><b>${r.name}</b><small>${r.desc}</small></button>`).join('')}</div></article>`;
     document.querySelectorAll('[data-relic]').forEach(b=>b.addEventListener('click',()=>takeRelic(b.dataset.relic)));
   }
 
@@ -980,6 +1010,7 @@
     const relic=relics.find(r=>r.id===id); if(!relic)return;
     expedition.relics.push(id);
     if(id==='whetstone') expedition.party.forEach(h=>h.physicalPower+=3);
+    if(id==='arcane') expedition.party.forEach(h=>h.magicPower+=3);
     if(id==='oak') expedition.party.forEach(h=>{h.maxHp+=12;h.hp+=12;});
     if(id==='quicksilver') expedition.party.forEach(h=>{h.maxSp+=1;h.sp=Math.min(h.maxSp,h.sp+1);});
     if(id==='ember') expedition.party.filter(h=>h.hp>0).forEach(h=>h.hp=Math.min(h.maxHp,h.hp+18));
@@ -1050,6 +1081,7 @@
   $('systemBtn').addEventListener('click',openSystem);
   $('modalClose').addEventListener('click',closeModal);
   $('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeModal();});
+  document.addEventListener('pointerdown',clickRipple);
   window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
   window.addEventListener('pointerdown',startBgm,{once:true});
 
