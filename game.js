@@ -451,6 +451,7 @@
 
   function slotName(slot){return {weapon:'武器',armor:'護甲',charm:'飾品'}[slot]||slot;}
   function portraitPath(heroId,variant='avatar'){return `assets/characters/${heroId}/${variant}.webp`;}
+  function scheduleHeroBack(heroId){queueMicrotask(()=>{const card=document.querySelector('.modal-card');if(!card||document.querySelector('[data-hero-back]'))return;card.insertAdjacentHTML('afterbegin',`<button class="modal-back" data-hero-back aria-label="返回${state.heroes.find(h=>h.id===heroId)?.name||''}角色面板">← 返回角色面板</button>`);document.querySelector('[data-hero-back]')?.addEventListener('click',()=>openHeroPanel(heroId));});}
   function rarityName(item){return rarityInfo[item.rarity||'common'].name;}
   const rarityOrder={legendary:0,epic:1,rare:2,common:3};
   function sortGear(items){return [...items].sort((a,b)=>(rarityOrder[a.rarity]??9)-(rarityOrder[b.rarity]??9)||a.slot.localeCompare(b.slot)||a.name.localeCompare(b.name,'zh-Hant'));}
@@ -508,6 +509,8 @@
 
   function openHeroPanel(heroId){
     const h=state.heroes.find(x=>x.id===heroId&&x.owned);if(!h)return;const scaled=scaledHero(h),spec=specInfo(h),active=state.activeParty.includes(h.id);
+    $('modal').classList.remove('training-modal');
+    document.querySelector('[data-hero-back]')?.remove();
     const gear=['weapon','armor','charm'].map(slot=>{const item=equipment.find(i=>i.id===h.equipment?.[slot]),affix=item&&gearAffix(item.id),lv=item?(state.gearLevels[item.id]||0):0;return `<article class="panel-gear ${item?`rarity-${item.rarity}`:''}"><small>${slotName(slot)}</small><b>${item?`${item.name} +${lv}/${gearMax(item)}`:'未裝備'}</b><span>${item?`${gearStatsText(item)}<br>${item.rarity!=='common'?`額外效果：${item.desc}<br>`:''}詞綴「${affix.name}」：${affix.desc}${item.set?`<br>套裝：${setBonusText(item.set)}`:''}`:'此欄位目前空白'}</span></article>`;}).join('');
     const skills=h.skills.map(base=>{const skill=trainedSkill(h,base),equipped=(h.activeSkills||[]).includes(base.id);return `<article class="panel-skill ${equipped?'equipped':''}"><div><b>${base.name}</b><em>${equipped?'已配置':'未配置'} · ${skill.damageType==='magic'?'魔法':skill.damage?'物理':'輔助'} · 強化 ${skill.rank}/3</em></div><span>${skillDetailText(h,skill)}</span></article>`;}).join('');
     const bonds=state.heroes.filter(x=>x.owned&&x.id!==h.id).map(x=>{const count=state.bonds[bondKey(h.id,x.id)]||0,lv=bondLevel(h.id,x.id);return `<article class="bond-entry"><b>${h.name} × ${x.name}</b><span>默契 ${count} · ${lv===2?'深厚羈絆':lv===1?'建立羈絆':'尚未建立'}</span><small>${lv===2?(bondSpecials[bondKey(h.id,x.id)]||'雙方生命 +3、雙威力 +1'):(lv===1?'同隊時雙方生命 +3':'共同完成 3 次遠征後生效')}</small></article>`;}).join('');
@@ -518,12 +521,12 @@
     document.querySelector('.character-actions')?.insertAdjacentHTML('beforeend',`<button data-panel-talents>天賦樹 (${talentPoints(h)} 點)</button>${h.level>=breakthroughCap(h)&&h.breakthrough<2?'<button data-panel-breakthrough>角色突破</button>':''}`);
     $('modalBody').insertAdjacentHTML('beforeend',`<span class="eyebrow panel-heading">BONDS · 羈絆</span><div class="bond-grid">${bonds||'<p class="empty-note">尚無其他成員</p>'}</div><div class="breakthrough-status">突破階段 <b>${h.breakthrough||0}/2</b> · 等級上限 <b>Lv.${breakthroughCap(h)}</b></div>`);
     document.querySelector('[data-panel-party]')?.addEventListener('click',()=>{toggleParty(h.id);openHeroPanel(h.id);});
-    document.querySelector('[data-panel-gear]')?.addEventListener('click',()=>openEquipment(h.id));
-    document.querySelector('[data-panel-skills]')?.addEventListener('click',()=>openTraining(h.id));
-    document.querySelector('[data-panel-attributes]')?.addEventListener('click',()=>openAttributes(h.id));
-    document.querySelector('[data-panel-talents]')?.addEventListener('click',()=>openTalents(h.id));
-    document.querySelector('[data-panel-breakthrough]')?.addEventListener('click',()=>openBreakthrough(h.id));
-    document.querySelector('[data-panel-spec]')?.addEventListener('click',()=>openSpecialization(h.id));
+    document.querySelector('[data-panel-gear]')?.addEventListener('click',()=>{scheduleHeroBack(h.id);openEquipment(h.id);});
+    document.querySelector('[data-panel-skills]')?.addEventListener('click',()=>{scheduleHeroBack(h.id);openTraining(h.id);});
+    document.querySelector('[data-panel-attributes]')?.addEventListener('click',()=>{scheduleHeroBack(h.id);openAttributes(h.id);});
+    document.querySelector('[data-panel-talents]')?.addEventListener('click',()=>{scheduleHeroBack(h.id);openTalents(h.id);});
+    document.querySelector('[data-panel-breakthrough]')?.addEventListener('click',()=>{scheduleHeroBack(h.id);openBreakthrough(h.id);});
+    document.querySelector('[data-panel-spec]')?.addEventListener('click',()=>{scheduleHeroBack(h.id);openSpecialization(h.id);});
   }
 
   function openAttributes(heroId){const h=state.heroes.find(x=>x.id===heroId);if(!h)return;const attrs=[['vitality','體魄','每點生命 +6'],['might','力量','每點物理威力 +2'],['magic','魔力','每點魔法威力 +2'],['focus','專注','每 3 點技能點上限 +1']];$('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalTitle').textContent=`${h.name} · 能力培養`;$('modalBody').innerHTML=`<p>${h.name}的能力結晶：<b>${h.abilityCrystals||0}</b>。角色每次升級固定獲得 1 枚，只能由本人使用。</p><div class="attribute-list">${attrs.map(([id,name,desc])=>`<article><div><b>${name}</b><span>${desc}</span></div><strong>${h.attributes[id]||0}</strong><button data-add-attribute="${id}" ${(h.abilityCrystals||0)<=0?'disabled':''}>＋</button></article>`).join('')}</div>`;document.querySelectorAll('[data-add-attribute]').forEach(b=>b.addEventListener('click',()=>addAttribute(heroId,b.dataset.addAttribute)));}
@@ -740,14 +743,26 @@
     planIntents(); beginHeroTurn();
   }
 
+  function bossIntent(e){
+    const r=Math.random(),p=e.phase2,round=combat.round;
+    if(e.type==='direalpha')return p?(r<.72?{type:'multi',value:Math.round(e.power*.82),hits:3,label:'血月連獵：隨機三擊'}:{type:'howl',value:3,label:'狼王長嚎：全隊脆弱 3 回合'}):(r<.24?{type:'maul',value:Math.round(e.power*.9),duration:3,label:'獵殺印記：傷害＋脆弱 3 回合'}:{type:r<.62?'heavy':'attack',value:r<.62?Math.round(e.power*1.45):e.power+3,label:r<.62?'裂骨撲殺':'迅猛爪擊'});
+    if(e.type==='miremother')return p?(r<.68?{type:'brood',value:7,label:'腐卵爆發：全隊傷害＋中毒'}:{type:'molt',value:30,label:'蛻殼再生：治療並獲得護盾'}):(r<.22?{type:'plague',duration:3,label:'孢子瘴氣：全隊中毒 3 回合'}:{type:r<.62?'venom':'heavy',value:r<.62?Math.round(e.power*1.05):Math.round(e.power*1.4),label:r<.62?'腐蝕毒牙':'母巢重壓'});
+    if(e.type==='warmachine')return p?(r<.7?{type:'siege',value:Math.round(e.power*1.65),shield:24,label:'攻城模式：裝甲充能後重砲'}:{type:'overload',value:Math.round(e.power*.65),label:'核心過載：全隊震擊'}):(r<.2?{type:'guard',value:24,label:'灰鐵壁壘：護盾 24'}:{type:r<.58?'sunder':'heavy',value:r<.58?Math.round(e.power*1.15):Math.round(e.power*1.5),label:r<.58?'液壓破盾錘':'攻城重拳'});
+    if(e.type==='archcultist')return p?(r<.65?{type:'doom',value:Math.round(e.power*.72),duration:3,label:'黑冠末日：全隊傷害＋脆弱'}:{type:'drainall',value:Math.round(e.power*.55),label:'群體獻祭：汲取全隊生命'}):(r<.23?{type:'curse',value:3,label:'長夜烙印：脆弱 3 回合'}:{type:r<.6?'drain':'heavy',value:r<.6?e.power:Math.round(e.power*1.45),label:r<.6?'祭血虹吸':'暗焰轟擊'});
+    if(e.type==='stormroc')return p?(r<.7?{type:'tempest',value:Math.round(e.power*.72),label:'風災領域：全隊傷害＋技能點 -1'}:{type:'skyfall',value:Math.round(e.power*1.9),label:'墜空獵殺：猛烈單體攻擊'}):(r<.2?{type:'disrupt',value:2,label:'裂空尖嘯：技能點 -2'}:{type:r<.58?'multi':'heavy',value:r<.58?Math.round(e.power*.72):Math.round(e.power*1.5),hits:r<.58?2:1,label:r<.58?'疾風雙襲':'雷翼俯衝'});
+    if(e.type==='demonking')return p?(round%3===0?{type:'doom',value:12,duration:3,label:'灰冠敕令：全隊傷害＋脆弱'}:round%2===0?{type:'tempest',value:11,label:'王座風暴：全隊傷害＋技能點 -1'}:{type:'multi',value:18,hits:3,label:'魔劍三連斬'}):(r<.2?{type:'curse',value:3,label:'魔王凝視：脆弱 3 回合'}:{type:r<.55?'heavy':'multi',value:r<.55?Math.round(e.power*1.5):Math.round(e.power*.7),hits:2,label:r<.55?'灰冠斬':'雙重魔刃'});
+    return null;
+  }
+
   function planIntents() {
     const special=difficulties[state.difficulty]?.special||0;
     combat.enemies.filter(e => e.hp > 0).forEach(e => {
       if(e.affix?.id==='regenerator'&&e.hp<e.maxHp)e.hp=Math.min(e.maxHp,e.hp+6);
       if(e.affix?.id==='armored')e.shield+=8;
       if(e.boss&&!e.phase2&&e.hp<=e.maxHp*.5){e.phase2=true;combat.log.push(`${e.name}進入第二階段：攻擊模式改變！`);}
+      const plannedBoss=e.boss?bossIntent(e):null;
       if (e.stunned > 0) e.intent = { type: 'stunned', label: '破勢：無法行動' };
-      else if(e.boss&&e.phase2) e.intent={type:'cleave',value:9+combat.round,label:`橫掃全隊 ${9+combat.round}`};
+      else if(plannedBoss)e.intent=plannedBoss;
       else if(e.type==='cultist'&&Math.random()<.42+special) e.intent={type:'empower',value:2,label:'戰意儀式'};
       else if(e.type==='golem'&&Math.random()<.42+special) e.intent={type:'guard',value:16,label:'岩盾守護'};
       else if(e.disruptor&&Math.random()<.5+special) e.intent={type:'disrupt',value:1,label:'裂風尖嘯：技能點 -1'};
@@ -904,11 +919,21 @@
         if(e.intent.type==='empower'){combat.enemies.filter(x=>x.hp>0&&x!==e).forEach(x=>x.power+=e.intent.value);combat.log.push(`${e.name}完成儀式，其他敵人威力提升！`);continue;}
         if(e.intent.type==='disrupt'){expedition.party.filter(h=>h.hp>0).forEach(h=>h.sp=Math.max(0,h.sp-e.intent.value));combat.log.push(`${e.name}的尖嘯擾亂全隊，技能點下降。`);continue;}
         if(e.intent.type==='curse'){expedition.party.filter(h=>h.hp>0).forEach(h=>h.frail=Math.max(h.frail,e.intent.value));combat.log.push(`${e.name}施加脆弱詛咒。`);continue;}
+        if(e.intent.type==='howl'){expedition.party.filter(h=>h.hp>0).forEach(h=>h.frail=Math.max(h.frail,e.intent.value));combat.log.push(`${e.name}以長嚎標記全隊，脆弱持續 ${e.intent.value} 回合。`);continue;}
+        if(e.intent.type==='plague'){expedition.party.filter(h=>h.hp>0).forEach(h=>h.poison=Math.max(h.poison,e.intent.duration));combat.log.push(`${e.name}散播瘴氣，全隊中毒 ${e.intent.duration} 回合。`);continue;}
+        if(e.intent.type==='molt'){e.hp=Math.min(e.maxHp,e.hp+e.intent.value);e.shield+=e.intent.value;combat.log.push(`${e.name}蛻去腐殼，恢復並獲得 ${e.intent.value} 護盾。`);continue;}
+        if(e.intent.type==='multi'){for(let i=0;i<(e.intent.hits||2);i++){const alive=expedition.party.filter(h=>h.hp>0);if(!alive.length)break;hurtHero(pick(alive),e.intent.value,false,e);}combat.log.push(`${e.name}發動連續追擊。`);continue;}
+        if(e.intent.type==='brood'){expedition.party.filter(h=>h.hp>0).forEach(h=>{hurtHero(h,e.intent.value,false,e);h.poison=Math.max(h.poison,3);});combat.log.push(`${e.name}引爆腐卵，全隊受傷並中毒。`);continue;}
+        if(e.intent.type==='overload'){expedition.party.filter(h=>h.hp>0).forEach(h=>hurtHero(h,e.intent.value,false,e));e.stagger+=18;combat.log.push(`${e.name}釋放過載震波，但自身累積 18 破勢。`);continue;}
+        if(e.intent.type==='doom'){expedition.party.filter(h=>h.hp>0).forEach(h=>{hurtHero(h,e.intent.value,false,e);h.frail=Math.max(h.frail,e.intent.duration||3);});combat.log.push(`${e.name}降下黑冠末日，全隊受傷並陷入長效脆弱。`);continue;}
+        if(e.intent.type==='drainall'){let total=0;expedition.party.filter(h=>h.hp>0).forEach(h=>{total+=hurtHero(h,e.intent.value,false,e).damage;});e.hp=Math.min(e.maxHp,e.hp+Math.round(total*.6));combat.log.push(`${e.name}獻祭全隊生命並恢復自身。`);continue;}
+        if(e.intent.type==='tempest'){expedition.party.filter(h=>h.hp>0).forEach(h=>{hurtHero(h,e.intent.value,false,e);h.sp=Math.max(0,h.sp-1);});combat.log.push(`${e.name}展開風災領域，全隊受傷且技能點下降。`);continue;}
         const blindScale=e.blind>0 ? .7 : 1;
         if(e.intent.type==='cleave'){expedition.party.filter(h=>h.hp>0).forEach(h=>hurtHero(h,Math.round(e.intent.value*blindScale),false,e));combat.log.push(`${e.name}橫掃全隊。`);continue;}
         const taunter=expedition.party.find(h=>h.hp>0&&h.taunt); const alive=expedition.party.filter(h=>h.hp>0); if(!alive.length)break;
-        const target=taunter||pick(alive);if(e.intent.type==='sunder')target.shield=0;const hit=hurtHero(target,Math.round(e.intent.value*blindScale),false,e);
+        const target=taunter||pick(alive);if(e.intent.type==='sunder')target.shield=0;if(e.intent.type==='siege')e.shield+=e.intent.shield||24;const hit=hurtHero(target,Math.round(e.intent.value*blindScale),false,e);
         if(e.intent.type==='venom'){target.poison=Math.max(target.poison,hasTrait(target,'antidote')?1:2);}
+        if(e.intent.type==='maul')target.frail=Math.max(target.frail,e.intent.duration||3);
         if(e.intent.type==='drain')e.hp=Math.min(e.maxHp,e.hp+hit.damage);
         combat.log.push(`${e.name}攻擊${target.name}，造成 ${hit.damage} 傷害${hit.absorbed?`（護盾吸收 ${hit.absorbed}）`:''}。`);
       }
@@ -1013,7 +1038,7 @@
   function resetSave(){if(!confirm('確定刪除目前進度？此動作無法復原，建議先匯出備份。'))return;if(!confirm('再次確認：要從第 1 日重新開始嗎？'))return;localStorage.removeItem(SAVE_KEY);location.reload();}
 
   function openIntro(){ $('modal').classList.add('open');$('modal').setAttribute('aria-hidden','false');$('modalBody').innerHTML='<p>《灰燼公會》沒有固定主線。你決定今天值得冒什麼風險，也決定邊境會變成什麼模樣。</p><ul><li>敵人頭上的標記會預告下一個行動；累積「破勢」可打斷敵人。</li><li>每日任務、季節與公會方針會定期輪替。</li><li>角色會隨聲望主動加入；升級取得能力結晶，可自由培養。</li><li>裝備、技能與能力使用各自獨立的素材。</li><li>從「隊伍」調整三名成員與實際出戰順序。</li><li>遠征失敗不會刪除進度；整備後再次出發。</li></ul><button class="action-btn" id="introOk">查看邊境局勢</button>';$('introOk').addEventListener('click',closeModal); }
-  function closeModal(){ $('modal').classList.remove('open','training-modal','hero-panel-modal');$('modal').setAttribute('aria-hidden','true');state.seenIntro=true;save(); }
+  function closeModal(){ document.querySelector('[data-hero-back]')?.remove();$('modal').classList.remove('open','training-modal','hero-panel-modal');$('modal').setAttribute('aria-hidden','true');state.seenIntro=true;save(); }
 
   $('refreshBtn').addEventListener('click',()=>{if(state.gold<10)return toast('金幣不足');state.gold-=10;generateContracts();renderGuild();toast('新的委託已張貼');});
   $('retreatBtn').addEventListener('click',()=>{if(confirm('確定放棄本次遠征？已取得的臨時戰利品將會失去。')){advanceDay();applyInjuries(false);save();returnGuild();}});
